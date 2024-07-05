@@ -5,6 +5,7 @@ import (
     "brcha/command"
     "brcha/common"
     "brcha/network"
+    "flag"
     "fmt"
     "log"
     "os"
@@ -12,10 +13,11 @@ import (
 
 const helpCommandOutput string = `
 Usage: 
-    brcha <jira-key> [arguments]
+    brcha [arguments]
 
 The arguments are: 
-    -t  <branch-type>
+    -i <issue-key>
+    -t <branch-type>
 
 Available branch types:
     build, b: Changes that affect the build system or external dependencies (example scopes: gradle, npm)
@@ -31,7 +33,7 @@ Available branch types:
     test, t: Adding missing tests or correcting existing tests
 
 Example: 
-    ~% brcha XX-111 -t fx
+    ~% brcha -i XX-111 -t fx
     ~% git checkout -b fix/XX-111_jira-issue-name`
 
 func main() {
@@ -40,7 +42,7 @@ func main() {
         log.Panic(err)
     }
 
-    jiraIssue, err := network.GetJiraIssue(input.ComandOrIssue)
+    jiraIssue, err := network.GetJiraIssue(input.Issue)
     if err != nil {
         log.Panic(err)
     }
@@ -67,37 +69,24 @@ func main() {
 
 func readUserInput() (*common.Input, error) {
     var input = &common.Input{
-        ComandOrIssue: branch.NewBranchType().Chore,
-        Argument:      "",
+        Issue:    "",
+        Argument: "",
     }
 
-    if len(os.Args) > 4 {
-        return input, fmt.Errorf("too many arguments")
-    }
+    help := flag.Bool("help", false, "displays all available commands")
+    flag.StringVar(&input.Issue, "i", "", "issue key")
+    flag.StringVar(&input.Argument, "t", "", "(optional) overrides the type of branch")
 
-    if len(os.Args) == 1 {
-        fmt.Println("Use \"brcha help\" for more information.")
+    flag.Parse()
+
+    if *help == true {
+        fmt.Println(helpCommandOutput)
         os.Exit(0)
     }
 
-    if len(os.Args) == 2 {
-        input.ComandOrIssue = os.Args[1]
-
-        if input.ComandOrIssue == "help" {
-            fmt.Println(helpCommandOutput)
-            os.Exit(0)
-        }
-    }
-
-    if len(os.Args) == 4 {
-        input.ComandOrIssue = os.Args[1]
-        arg := os.Args[2]
-
-        if arg != "-t" {
-            return input, fmt.Errorf("unsupported argument")
-        }
-
-        input.Argument = os.Args[3]
+    if len(os.Args) == 1 {
+        fmt.Println("Use \"brcha -h\" or \"brcha -help\" for more information.")
+        os.Exit(0)
     }
 
     return input, nil

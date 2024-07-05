@@ -73,7 +73,7 @@ mv brcha /usr/local/bin
 ## Usage
 
 ```terminal
-brcha <jira-key> [arguments]
+brcha [arguments]
 ```
 
 ## Commands
@@ -82,14 +82,20 @@ brcha <jira-key> [arguments]
 and examples. Use this command to understand how to use the tool effectively.
 
 ```terminal
-brcha help
+brcha -help
+```
+
+`-i <issue-key>` - The branch prefix after branch type. Uses Jira Issue Key.
+
+``` terminal
+brcha -i XXX-00
 ```
 
 `-t <branch-type>` - (optional) Overrides the type of branch to create, allowing the branch name ignore mapped Jira
 issue types. Branches are named according to the [standard](https://www.conventionalcommits.org/en/v1.0.0/).
 
 ``` terminal
-brcha XXX-00 -t ci
+brcha -i XXX-00 -t ci
 ```
 
 Available branch types
@@ -127,11 +133,11 @@ func BuildName(branchType string, jiraIssue JiraIssue) string {
 ## Examples
 
 ```terminal
-~% brcha XX-111 -t fx
+~% brcha -i XX-111 -t fx
 ~% git checkout -b fix/XX-111_jira-issue-name
 ```
 
 ```terminal
-~% brcha XX-111
+~% brcha -i XX-111
 ~% git checkout -b chore/XX-111_jira-issue-name
 ```

@@ -76,7 +76,7 @@ func readUserInput() (*common.Input, error) {
     }
 
     if len(os.Args) == 1 {
-        log.Println("Use \"brcha help\" for more information.")
+        fmt.Println("Use \"brcha help\" for more information.")
         os.Exit(0)
     }
 
@@ -84,7 +84,7 @@ func readUserInput() (*common.Input, error) {
         input.ComandOrIssue = os.Args[1]
 
         if input.ComandOrIssue == "help" {
-            log.Println(helpCommandOutput)
+            fmt.Println(helpCommandOutput)
             os.Exit(0)
         }
     }

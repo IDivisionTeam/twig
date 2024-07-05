@@ -71,7 +71,7 @@ func readUserInput() (*common.Input, error) {
         Argument:      "",
     }
 
-    if len(os.Args) > 3 {
+    if len(os.Args) > 4 {
         return input, fmt.Errorf("too many arguments")
     }
 
@@ -89,7 +89,7 @@ func readUserInput() (*common.Input, error) {
         }
     }
 
-    if len(os.Args) == 3 {
+    if len(os.Args) == 4 {
         input.ComandOrIssue = os.Args[1]
         arg := os.Args[2]
 

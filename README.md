@@ -1,4 +1,4 @@
-# brcha | `v1.0.0`
+# brcha  ![brcha](https://img.shields.io/badge/brcha-v1.0.0-green.svg)
 
 ## Overview
 

@@ -56,17 +56,23 @@ builder.Set("xxxxx", true) // Epic
 // etc.
 ```
 
-4. Compile the tool into an executable file.
+4. Copy `.env` file into ``~/.config/brcha/` folder.
+
+```terminal
+mkdir -p ~/.config/brcha/
+cp .env ~/.config/brcha/
+```
+
+5. Compile the tool into an executable file.
 
 ```terminal
 go build
 ```
 
-5. Move the executable and copy `.env` in `/usr/local/bin` for easy global access.
+6. Move the executable  into `/usr/local/bin` for easy global access.
 
 ```terminal
 mv brcha /usr/local/bin
-cp .env /usr/local/bin
 ```
 
 ## Usage

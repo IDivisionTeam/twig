@@ -41,7 +41,7 @@ type IssueType struct {
 
 func GetJiraIssue(issueKey string) (*JiraIssue, error) {
     jira := withJiraCredentials()
-    url := "https://" + jira.host + "/rest/api/2/issue/" + issueKey + "?fields=issuetype,summary"
+    url := fmt.Sprintf("https://%s/rest/api/2/issue/%s?fields=issuetype,summary", jira.host, issueKey)
 
     request, err := http.NewRequest("GET", url, nil)
     if err != nil {
@@ -84,7 +84,7 @@ func GetJiraIssue(issueKey string) (*JiraIssue, error) {
 
 func GetJiraIssueTypes() ([]IssueType, error) {
     jira := withJiraCredentials()
-    url := "https://" + jira.host + "/rest/api/2/issuetype"
+    url := fmt.Sprintf("https://%s/rest/api/2/issuetype", jira.host)
 
     request, err := http.NewRequest("GET", url, nil)
     if err != nil {

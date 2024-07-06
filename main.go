@@ -39,29 +39,29 @@ Example:
 func main() {
     input, err := readUserInput()
     if err != nil {
-        log.Panic(err)
+        log.Fatal(err)
     }
 
     jiraIssue, err := network.GetJiraIssue(input.Issue)
     if err != nil {
-        log.Panic(err)
+        log.Fatal(err)
     }
 
     jiraIssueTypes, err := network.GetJiraIssueTypes()
     if err != nil {
-        log.Panic(err)
+        log.Fatal(err)
     }
 
     branchType, err := getIssueType(input, jiraIssue.Fields.Type, jiraIssueTypes)
     if err != nil {
-        log.Panic(err)
+        log.Fatal(err)
     }
 
     branchName := branch.BuildName(branchType, jiraIssue)
 
     executableCommand, err := command.Checkout(branchName)
     if err != nil {
-        log.Panic(err)
+        log.Fatal(err)
     }
 
     fmt.Println(executableCommand)

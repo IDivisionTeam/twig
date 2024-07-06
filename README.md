@@ -56,7 +56,7 @@ builder.Set("xxxxx", true) // Epic
 // etc.
 ```
 
-4. Copy `.env` file into ``~/.config/brcha/` folder.
+4. Copy `.env` file into `~/.config/brcha/` folder.
 
 ```terminal
 mkdir -p ~/.config/brcha/

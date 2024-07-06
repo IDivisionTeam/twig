@@ -27,7 +27,7 @@ func ReadEnvVariables() error {
 }
 
 func Checkout(branchName string) (string, error) {
-    out, err := exec.Command("git", "checkout", "-b", branchName).Output()
+    out, err := exec.Command("git", "checkout", "-b", branchName).CombinedOutput()
     if err != nil {
         return "", fmt.Errorf("git checkout %w", err)
     }

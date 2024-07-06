@@ -5,6 +5,7 @@ go 1.22.3
 require (
 	github.com/benbjohnson/immutable v0.4.3
 	github.com/fatih/color v1.17.0
+	github.com/joho/godotenv v1.5.1
 )
 
 require (

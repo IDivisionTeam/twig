@@ -37,6 +37,11 @@ Example:
     ~% git checkout -b fix/XX-111_jira-issue-name`
 
 func main() {
+    err := command.ReadEnvVariables()
+    if err != nil {
+        log.Fatal(err)
+    }
+
     input, err := readUserInput()
     if err != nil {
         log.Fatal(err)

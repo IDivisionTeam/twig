@@ -6,6 +6,7 @@ import (
     "io"
     "log"
     "net/http"
+    "os"
 )
 
 type jiraCredentials struct {
@@ -14,12 +15,11 @@ type jiraCredentials struct {
     token string
 }
 
-// TODO: replace with your <host>, <email>, and <token>.
 func withJiraCredentials() *jiraCredentials {
     return &jiraCredentials{
-        host:  "",
-        email: "",
-        token: "",
+        host:  os.Getenv("BRCHA_HOST"),
+        email: os.Getenv("BRCHA_EMAIL"),
+        token: os.Getenv("BRCHA_TOKEN"),
     }
 }
 

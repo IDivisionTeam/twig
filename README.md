@@ -13,14 +13,12 @@ A tool for seamless branch creation by passing the Issue Key into the CLI. It us
 
 ## Installation
 
-1. Configure your Jira API settings in the `network.go` file.
+1. Configure your Jira API settings in the `.env` file.
 
-```network.go
-jiraCredentials {
-    host:  "example.atlassian.net",
-    email: "email@example.com",
-    token: "api_token",
-}
+```.env
+BRCHA_HOST=example.atlassian.net
+BRCHA_EMAIL=email@example.com
+BRCHA_TOKEN=api_token
 ```
 
 2. Define mappings for your Jira issue types in the configuration the `issue.go` file.
@@ -64,10 +62,11 @@ builder.Set("xxxxx", true) // Epic
 go build
 ```
 
-5. Move the executable in `/usr/local/bin` for easy global access.
+5. Move the executable and copy `.env` in `/usr/local/bin` for easy global access.
 
 ```terminal
 mv brcha /usr/local/bin
+cp .env /usr/local/bin
 ```
 
 ## Usage

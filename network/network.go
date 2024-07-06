@@ -65,7 +65,7 @@ func GetJiraIssue(issueKey string) (*JiraIssue, error) {
     }(response.Body)
 
     if response.StatusCode != http.StatusOK {
-        return nil, fmt.Errorf("jira API not available %w", err)
+        return nil, fmt.Errorf("(%d)jira API not available %w", response.StatusCode, err)
     }
 
     body, err := io.ReadAll(response.Body)
@@ -108,7 +108,7 @@ func GetJiraIssueTypes() ([]IssueType, error) {
     }(response.Body)
 
     if response.StatusCode != http.StatusOK {
-        return nil, fmt.Errorf("jira API not available %w", err)
+        return nil, fmt.Errorf("(%d)jira API not available %w", response.StatusCode, err)
     }
 
     body, err := io.ReadAll(response.Body)

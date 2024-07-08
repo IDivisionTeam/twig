@@ -42,7 +42,8 @@ const (
 
 func main() {
     if err := command.ReadEnvVariables(); err != nil {
-        recorder.Print(recorder.ERROR, err)
+        recorder.Println(recorder.ERROR, err)
+        os.Exit(1)
     }
 
     input := readUserInput()
@@ -52,27 +53,31 @@ func main() {
 
     jiraIssue, err := client.GetJiraIssue(input.Issue)
     if err != nil {
-        recorder.Print(recorder.ERROR, err)
+        recorder.Println(recorder.ERROR, err)
+        os.Exit(1)
     }
 
     jiraIssueTypes, err := client.GetJiraIssueTypes()
     if err != nil {
-        recorder.Print(recorder.ERROR, err)
+        recorder.Println(recorder.ERROR, err)
+        os.Exit(1)
     }
 
     branchType, err := getIssueType(input, jiraIssue.Fields.Type, jiraIssueTypes)
     if err != nil {
-        recorder.Print(recorder.ERROR, err)
+        recorder.Println(recorder.ERROR, err)
+        os.Exit(1)
     }
 
     branchName := branch.BuildName(branchType, *jiraIssue)
 
     checkoutCommand, err := command.Checkout(branchName)
     if err != nil {
-        recorder.Print(recorder.ERROR, err)
+        recorder.Println(recorder.ERROR, err)
+        os.Exit(1)
     }
 
-    recorder.Print(recorder.INFO, checkoutCommand)
+    recorder.Println(recorder.INFO, checkoutCommand)
 }
 
 func readUserInput() *common.Input {

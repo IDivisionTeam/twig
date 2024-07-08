@@ -55,8 +55,6 @@ func (c *networkClient) GetJiraIssueTypes() ([]IssueType, error) {
         return nil, fmt.Errorf("(%d) get issue types unmarshal: %w", response.statusCode, err)
     }
 
-    recorder.Println(recorder.INFO, jiraIssue)
-
     return jiraIssue, nil
 }
 

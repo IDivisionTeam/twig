@@ -39,7 +39,7 @@ func newWarningRecorder() Recorder {
 
 func newErrorRecorder() Recorder {
     return &ErrorRecorder{
-        logger: log.New(os.Stderr, "ERROR: ", log.Lmsgprefix|log.LstdFlags|log.Lshortfile),
+        logger: log.New(os.Stderr, "ERROR: ", log.Lmsgprefix|log.LstdFlags),
     }
 }
 

@@ -13,14 +13,14 @@ import (
 func ReadEnvVariables() error {
     homeDir, err := os.UserHomeDir()
     if err != nil {
-       return fmt.Errorf("getting home directory: %w", err)
+        return fmt.Errorf("obtaining home directory: %w", err)
     }
 
     envPath := filepath.Join(homeDir, ".config", "brcha", ".env")
 
     err = godotenv.Load(envPath)
     if err != nil {
-        return fmt.Errorf("read .env %w", err)
+        return fmt.Errorf("reading .env: %w", err)
     }
 
     return nil

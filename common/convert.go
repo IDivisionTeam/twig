@@ -4,94 +4,85 @@ import (
     "brcha/branch"
     "brcha/issue"
     "brcha/network"
+    "brcha/recorder"
     "fmt"
-    "log"
 )
 
-func ConvertIssueToBranchType(issueType network.IssueType) (string, error) {
-    branchType := branch.NewBranchType()
-
-    var name string
+func ConvertIssueToBranchType(issueType network.IssueType) (branch.Type, error) {
     switch issueType.Id {
     case issue.Build:
-        name = branchType.Build
+        return branch.BUILD, nil
     case issue.Chore:
-        name = branchType.Chore
+        return branch.CHORE, nil
     case issue.Ci:
-        name = branchType.Ci
+        return branch.CI, nil
     case issue.Docs:
-        name = branchType.Docs
+        return branch.DOCS, nil
     case issue.Feat:
-        name = branchType.Feat
+        return branch.FEAT, nil
     case issue.Fix:
-        name = branchType.Fix
+        return branch.FIX, nil
     case issue.Perf:
-        name = branchType.Perf
+        return branch.PERF, nil
     case issue.Refactor:
-        name = branchType.Refactor
+        return branch.REFACTOR, nil
     case issue.Revert:
-        name = branchType.Revert
+        return branch.REVERT, nil
     case issue.Style:
-        name = branchType.Style
+        return branch.STYLE, nil
     case issue.Test:
-        name = branchType.Test
+        return branch.TEST, nil
     default:
-        return "", fmt.Errorf("unsupported issue type %v", issueType)
+        return branch.NULL, fmt.Errorf("convert: unsupported issue type %s(%s)", issueType.Name, issueType.Id)
     }
-
-    return name, nil
 }
 
-func ConvertUserInputToBranchType(input string) (string, error) {
-    branchType := branch.NewBranchType()
-
+func ConvertUserInputToBranchType(input string) (branch.Type, error) {
     if len(input) == 0 {
-        return branchType.Chore, nil
+        return branch.NULL, nil
     }
 
-    var name string
     switch input {
     case "build", "b":
-        name = branchType.Build
+        return branch.BUILD, nil
     case "chore", "ch":
-        name = branchType.Chore
+        return branch.CHORE, nil
     case "ci":
-        name = branchType.Ci
+        return branch.CI, nil
     case "docs", "d":
-        name = branchType.Docs
+        return branch.DOCS, nil
     case "feat", "ft":
-        name = branchType.Feat
+        return branch.FEAT, nil
     case "fix", "fx":
-        name = branchType.Fix
+        return branch.FIX, nil
     case "perf", "p":
-        name = branchType.Perf
+        return branch.PERF, nil
     case "refactor", "rf":
-        name = branchType.Refactor
+        return branch.REFACTOR, nil
     case "revert", "rv":
-        name = branchType.Revert
+        return branch.REVERT, nil
     case "style", "s":
-        name = branchType.Style
+        return branch.STYLE, nil
     case "test", "t":
-        name = branchType.Test
+        return branch.TEST, nil
     default:
-        return "", fmt.Errorf("unsupported branch type %s", input)
+        return branch.NULL, fmt.Errorf("unsupported branch type %s", input)
     }
-
-    return name, nil
 }
 
-func ConvertIssueTypesToMap(issueTypes []network.IssueType) (map[string]string, error) {
-    issueMap := make(map[string]string)
+func ConvertIssueTypesToMap(issueTypes []network.IssueType) (map[string]branch.Type, error) {
+    issueMap := make(map[string]branch.Type)
 
     for _, i := range issueTypes {
         _, ok := issue.Ignored.Get(i.Id)
         if ok {
+            recorder.Printf(recorder.WARN, "convert: ignore %s(%s)", i.Name, i.Id)
             continue
         }
 
         name, err := ConvertIssueToBranchType(i)
         if err != nil {
-            log.Println(err)
+            recorder.Println(recorder.WARN, err)
             continue
         }
 

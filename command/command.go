@@ -32,6 +32,5 @@ func Checkout(branchName string) (string, error) {
         return "", fmt.Errorf("git checkout %w", err)
     }
 
-    coloredOutput := color.GreenString(string(out))
-    return coloredOutput, nil
+    return string(out), nil
 }

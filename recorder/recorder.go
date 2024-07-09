@@ -1,6 +1,8 @@
 package recorder
 
 import (
+    "brcha/util"
+    "github.com/fatih/color"
     "log"
 )
 
@@ -23,37 +25,37 @@ type ErrorRecorder struct {
 }
 
 func (i *InfoRecorder) print(v ...any) {
-    i.logger.Print(v...)
+    i.logger.Print(util.WrapInColor(color.FgBlue, v...))
 }
 
 func (i *InfoRecorder) printf(format string, v ...any) {
-    i.logger.Printf(format, v...)
+    i.logger.Print(util.WrapInColorf(color.FgBlue, format, v...))
 }
 
 func (i *InfoRecorder) println(v ...any) {
-    i.logger.Println(v...)
+    i.logger.Print(util.WrapInColorln(color.FgBlue, v...))
 }
 
 func (i *WarningRecorder) print(v ...any) {
-    i.logger.Print(v...)
+    i.logger.Print(util.WrapInColor(color.FgYellow, v...))
 }
 
 func (i *WarningRecorder) printf(format string, v ...any) {
-    i.logger.Printf(format, v...)
+    i.logger.Print(util.WrapInColorf(color.FgYellow, format, v...))
 }
 
 func (i *WarningRecorder) println(v ...any) {
-    i.logger.Println(v...)
+    i.logger.Print(util.WrapInColorln(color.FgYellow, v...))
 }
 
 func (i *ErrorRecorder) print(v ...any) {
-    i.logger.Print(v...)
+    i.logger.Print(util.WrapInColor(color.FgRed, v...))
 }
 
 func (i *ErrorRecorder) printf(format string, v ...any) {
-    i.logger.Printf(format, v...)
+    i.logger.Print(util.WrapInColorf(color.FgRed, format, v...))
 }
 
 func (i *ErrorRecorder) println(v ...any) {
-    i.logger.Println(v...)
+    i.logger.Print(util.WrapInColorln(color.FgRed, v...))
 }

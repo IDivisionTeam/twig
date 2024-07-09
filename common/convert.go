@@ -6,6 +6,7 @@ import (
     "brcha/network"
     "brcha/recorder"
     "fmt"
+    "strings"
 )
 
 func ConvertIssueToBranchType(issueType network.IssueType) (branch.Type, error) {
@@ -73,10 +74,16 @@ func ConvertUserInputToBranchType(input string) (branch.Type, error) {
 func ConvertIssueTypesToMap(issueTypes []network.IssueType) (map[string]branch.Type, error) {
     issueMap := make(map[string]branch.Type)
 
+    var buffer strings.Builder
     for _, i := range issueTypes {
         _, ok := issue.Ignored.Get(i.Id)
         if ok {
-            recorder.Printf(recorder.WARN, "convert: ignore %s(%s)", i.Name, i.Id)
+            buffer.WriteString("- ")
+            buffer.WriteString(i.Name)
+            buffer.WriteString("[")
+            buffer.WriteString(i.Id)
+            buffer.WriteString("]")
+            buffer.WriteString("\n")
             continue
         }
 
@@ -88,6 +95,8 @@ func ConvertIssueTypesToMap(issueTypes []network.IssueType) (map[string]branch.T
 
         issueMap[i.Id] = name
     }
+
+    recorder.Printf(recorder.WARN, "convert: ignore issue types:\n%s", buffer.String())
 
     return issueMap, nil
 }

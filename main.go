@@ -71,7 +71,8 @@ func main() {
 
     branchName := branch.BuildName(branchType, *jiraIssue)
 
-    checkoutCommand, err := command.Checkout(branchName)
+    shouldCreateBranch := command.HasBranch(branchName)
+    checkoutCommand, err := command.Checkout(branchName, shouldCreateBranch)
     if err != nil {
         recorder.Println(recorder.ERROR, err)
         os.Exit(1)

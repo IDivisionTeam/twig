@@ -2,10 +2,10 @@ package command
 
 import (
     "fmt"
-    "github.com/fatih/color"
     "os"
     "os/exec"
     "path/filepath"
+    "slices"
 
     "github.com/joho/godotenv"
 )
@@ -26,10 +26,21 @@ func ReadEnvVariables() error {
     return nil
 }
 
-func Checkout(branchName string) (string, error) {
-    out, err := exec.Command("git", "checkout", "-b", branchName).CombinedOutput()
+func HasBranch(branchName string) bool {
+    err := exec.Command("git", "branch", "--contains", branchName).Run()
+    return err == nil
+}
+
+func Checkout(branchName string, hasBranch bool) (string, error) {
+    args := []string{"checkout", branchName}
+
+    if !hasBranch {
+        args = slices.Insert(args, 1, "-b")
+    }
+
+    out, err := exec.Command("git", args...).CombinedOutput()
     if err != nil {
-        return "", fmt.Errorf("git checkout %w", err)
+        return "", fmt.Errorf("git checkout: %s%w", string(out), err)
     }
 
     return string(out), nil

@@ -26,8 +26,8 @@ var Ignored = buildMap()
 func buildMap() map[string]bool {
     builder := make(map[string]bool)
 
-    builder.Set("4444", true) // Subtask
-    // builder.Set("3333", true) // Bug
+    builder["4444"] = true // Subtask
+    // builder["3333"] = true // Bug
     // etc.
 
     return builder

@@ -51,8 +51,8 @@ curl --request GET \
 3. Specify issue type IDs to ignore, if necessary.
 
 ```issue.go
-builder.Set("xxxxx", true) // Subtask
-builder.Set("xxxxx", true) // Epic
+builder["xxxxx"] = true // Subtask
+builder["xxxxx"] = true // Epic
 // etc.
 ```
 

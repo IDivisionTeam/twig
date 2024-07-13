@@ -1,7 +1,7 @@
 package network
 
 import (
-    "brcha/recorder"
+    "brcha/log"
     "encoding/json"
     "fmt"
     "io"
@@ -42,6 +42,7 @@ func NewClient(client *http.Client) Client {
 }
 
 func (c *networkClient) GetJiraIssueTypes() ([]IssueType, error) {
+    log.Debug().Println("get issuetype: request issue types")
     path := "issuetype"
 
     response, err := c.sendRequest(path)
@@ -52,13 +53,14 @@ func (c *networkClient) GetJiraIssueTypes() ([]IssueType, error) {
     var jiraIssue []IssueType
     err = json.Unmarshal(response.body, &jiraIssue)
     if err != nil {
-        return nil, fmt.Errorf("(%d) get issue types unmarshal: %w", response.statusCode, err)
+        return nil, fmt.Errorf("get issue: (%d) types unmarshal: %w", response.statusCode, err)
     }
 
     return jiraIssue, nil
 }
 
 func (c *networkClient) GetJiraIssue(issueKey string) (*JiraIssue, error) {
+    log.Debug().Println("get issue: request issue")
     path := fmt.Sprintf("issue/%s?fields=issuetype,summary", issueKey)
 
     response, err := c.sendRequest(path)
@@ -68,7 +70,7 @@ func (c *networkClient) GetJiraIssue(issueKey string) (*JiraIssue, error) {
 
     var jiraIssue JiraIssue
     if err := json.Unmarshal(response.body, &jiraIssue); err != nil {
-        return nil, fmt.Errorf("(%d) get issue unmarshal: %w", response.statusCode, err)
+        return nil, fmt.Errorf("get issue: (%d) unmarshal: %w", response.statusCode, err)
     }
 
     return &jiraIssue, nil
@@ -76,6 +78,7 @@ func (c *networkClient) GetJiraIssue(issueKey string) (*JiraIssue, error) {
 
 func (c *networkClient) prepareRequest(path string) (*http.Request, error) {
     url := fmt.Sprintf("https://%s/rest/api/2/%s", c.credentials.host, path)
+    log.Debug().Printf("prepare request: url = %s", url)
 
     request, err := http.NewRequest("GET", url, nil)
     if err != nil {
@@ -91,9 +94,10 @@ func (c *networkClient) prepareRequest(path string) (*http.Request, error) {
 func (c *networkClient) sendRequest(path string) (*Response, error) {
     request, err := c.prepareRequest(path)
     if err != nil {
-        return nil, fmt.Errorf("new request: %w", err)
+        return nil, fmt.Errorf("send request: %w", err)
     }
 
+    log.Debug().Println("send request: enqueue request")
     response, err := c.client.Do(request)
     if err != nil {
         return nil, fmt.Errorf("send request: %w", err)
@@ -102,24 +106,25 @@ func (c *networkClient) sendRequest(path string) (*Response, error) {
     defer func(Body io.ReadCloser) {
         err := Body.Close()
         if err != nil {
-            recorder.Println(recorder.ERROR, err)
+            log.Error().Printf("send request: %v", err)
         }
     }(response.Body)
 
     body, err := io.ReadAll(response.Body)
     if err != nil {
-        return nil, fmt.Errorf("read response bytes: %w", err)
+        return nil, fmt.Errorf("send request: read response bytes: %w", err)
     }
 
+    log.Debug().Printf("send request: status code = %d", response.StatusCode)
     if response.StatusCode != http.StatusOK {
         var jiraError JiraError
         if err := json.Unmarshal(body, &jiraError); err != nil {
-            return nil, fmt.Errorf("(%d) unmarshal error: %w", response.StatusCode, err)
+            return nil, fmt.Errorf("send request: (%d) unmarshal error: %w", response.StatusCode, err)
         }
 
         errors := strings.Join(jiraError.ErrorMessages[:], "\n")
 
-        return nil, fmt.Errorf("(%d) Jira API: %s", response.StatusCode, errors)
+        return nil, fmt.Errorf("send request: (%d) Jira API: %s", response.StatusCode, errors)
     }
 
     return &Response{

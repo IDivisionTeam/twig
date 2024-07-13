@@ -1,6 +1,7 @@
 package branch
 
 import (
+    "brcha/log"
     "brcha/network"
     "regexp"
     "strings"
@@ -13,6 +14,9 @@ const (
 )
 
 func BuildName(bt Type, jiraIssue network.JiraIssue) string {
+    branchType := bt.ToString()
+    log.Debug().Printf("build name: issue %s[%s] with branch type of %s", jiraIssue.Key, jiraIssue.Id, branchType)
+
     var buffer strings.Builder
 
     summary := replacePhrases(jiraIssue.Fields.Summary)
@@ -22,7 +26,7 @@ func BuildName(bt Type, jiraIssue network.JiraIssue) string {
     summary = strings.TrimSuffix(summary, wordSeparator)
 
     if bt != NULL {
-        buffer.WriteString(bt.ToString())
+        buffer.WriteString(branchType)
         buffer.WriteString(branchTypeSeparator)
     }
 
@@ -34,11 +38,15 @@ func BuildName(bt Type, jiraIssue network.JiraIssue) string {
 }
 
 func stripRegex(in string) string {
+    log.Debug().Printf("strip regex: transform: %s", in)
+
     reg, _ := regexp.Compile("[^a-zA-Z0-9]+")
     return reg.ReplaceAllString(in, wordSeparator)
 }
 
 func replacePhrases(in string) string {
+    log.Debug().Printf("replace phrases: transform: %s", in)
+
     phrase := strings.ReplaceAll(in, "[Android]", "")
     phrase = strings.ReplaceAll(phrase, "[iOS]", "")
     phrase = strings.ReplaceAll(phrase, "[BE]", "")

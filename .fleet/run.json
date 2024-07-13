@@ -1,0 +1,27 @@
+{
+    "configurations": [
+        {
+            "name": "Run Debug",
+            "type": "command",
+            "program": "/usr/local/go/bin/go",
+            "args": [
+                "run",
+                "-tags=devbuild",
+                "$PROJECT_DIR$/main.go",
+                //                "-i",
+                //                "JIRA-TICKET"
+            ]
+        },
+        {
+            "name": "Run Release",
+            "type": "command",
+            "program": "/usr/local/go/bin/go",
+            "args": [
+                "run",
+                "$PROJECT_DIR$/main.go",
+                //                "-i",
+                //                "JIRA-TICKET"
+            ]
+        }
+    ]
+}

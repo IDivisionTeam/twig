@@ -5,7 +5,7 @@ import (
     "brcha/command"
     "brcha/common"
     "brcha/network"
-    "brcha/recorder"
+    "brcha/log"
     "flag"
     "fmt"
     "net/http"
@@ -42,7 +42,7 @@ const (
 
 func main() {
     if err := command.ReadEnvVariables(); err != nil {
-        recorder.Println(recorder.ERROR, err)
+        log.Error().Println(err)
         os.Exit(1)
     }
 
@@ -53,19 +53,19 @@ func main() {
 
     jiraIssue, err := client.GetJiraIssue(input.Issue)
     if err != nil {
-        recorder.Println(recorder.ERROR, err)
+        log.Error().Println(err)
         os.Exit(1)
     }
 
     jiraIssueTypes, err := client.GetJiraIssueTypes()
     if err != nil {
-        recorder.Println(recorder.ERROR, err)
+        log.Error().Println(err)
         os.Exit(1)
     }
 
     branchType, err := getIssueType(input, jiraIssue.Fields.Type, jiraIssueTypes)
     if err != nil {
-        recorder.Println(recorder.ERROR, err)
+        log.Error().Println(err)
         os.Exit(1)
     }
 
@@ -74,11 +74,11 @@ func main() {
     hasBranch := command.HasBranch(branchName)
     checkoutCommand, err := command.Checkout(branchName, hasBranch)
     if err != nil {
-        recorder.Println(recorder.ERROR, err)
+        log.Error().Println(err)
         os.Exit(1)
     }
 
-    recorder.Println(recorder.INFO, checkoutCommand)
+    log.Info().Println(checkoutCommand)
 }
 
 func readUserInput() *common.Input {
@@ -94,31 +94,35 @@ func readUserInput() *common.Input {
     flag.Parse()
 
     if *help == true {
-        recorder.Println(recorder.INFO, helpCommandOutput)
+        log.Info().Println(helpCommandOutput)
         os.Exit(0)
     }
 
     if len(os.Args) == 1 {
-        recorder.Println(recorder.INFO, emptyCommandArguments)
+        log.Info().Println(emptyCommandArguments)
         os.Exit(0)
     }
+
+    log.Debug().Printf("user input: -i=%s -t=%s", input.Issue, input.Argument)
 
     return input
 }
 
 func getIssueType(input *common.Input, jiraIssueType network.IssueType, types []network.IssueType) (branch.Type, error) {
     if len(input.Argument) > 0 {
+        log.Debug().Printf("get issue type: user override: %s", input.Argument)
         return common.ConvertUserInputToBranchType(input.Argument)
     }
+    log.Debug().Println("get issue type: no user override, take Issue Types from Jira")
 
     mappedIssueTypes, err := common.ConvertIssueTypesToMap(types)
     if err != nil {
-        return branch.NULL, fmt.Errorf("getIssueType: %w", err)
+        return branch.NULL, fmt.Errorf("get issue type: %w", err)
     }
 
     value, ok := mappedIssueTypes[jiraIssueType.Id]
     if !ok {
-        return branch.NULL, fmt.Errorf("getIssueType: mapped issue type does not exist")
+        return branch.NULL, fmt.Errorf("get issue type: mapped issue type does not exist")
     }
 
     return value, nil

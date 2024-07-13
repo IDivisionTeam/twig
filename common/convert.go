@@ -3,8 +3,8 @@ package common
 import (
     "brcha/branch"
     "brcha/issue"
+    "brcha/log"
     "brcha/network"
-    "brcha/recorder"
     "fmt"
     "strings"
 )
@@ -67,7 +67,7 @@ func ConvertUserInputToBranchType(input string) (branch.Type, error) {
     case "test", "t":
         return branch.TEST, nil
     default:
-        return branch.NULL, fmt.Errorf("unsupported branch type %s", input)
+        return branch.NULL, fmt.Errorf("convert: unsupported branch type %s", input)
     }
 }
 
@@ -75,7 +75,7 @@ func ConvertIssueTypesToMap(issueTypes []network.IssueType) (map[string]branch.T
     issueMap := make(map[string]branch.Type)
 
     var buffer strings.Builder
-    for _, i := range issueTypes {
+    for idx, i := range issueTypes {
         _, ok := issue.Ignored[i.Id]
         if ok {
             buffer.WriteString("- ")
@@ -83,20 +83,22 @@ func ConvertIssueTypesToMap(issueTypes []network.IssueType) (map[string]branch.T
             buffer.WriteString("[")
             buffer.WriteString(i.Id)
             buffer.WriteString("]")
-            buffer.WriteString("\n")
+            if idx != len(issueTypes)-1 {
+                buffer.WriteString("\n")
+            }
             continue
         }
 
         name, err := ConvertIssueToBranchType(i)
         if err != nil {
-            recorder.Println(recorder.WARN, err)
+            log.Warn().Printf("convert: map network to local: %v", err)
             continue
         }
 
         issueMap[i.Id] = name
     }
 
-    recorder.Printf(recorder.WARN, "convert: ignore issue types:\n%s", buffer.String())
+    log.Warn().Printf("convert:\nignore issue types:\n%s", buffer.String())
 
     return issueMap, nil
 }

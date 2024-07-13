@@ -76,7 +76,7 @@ func ConvertIssueTypesToMap(issueTypes []network.IssueType) (map[string]branch.T
 
     var buffer strings.Builder
     for _, i := range issueTypes {
-        _, ok := issue.Ignored.Get(i.Id)
+        _, ok := issue.Ignored[i.Id]
         if ok {
             buffer.WriteString("- ")
             buffer.WriteString(i.Name)

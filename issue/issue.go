@@ -1,7 +1,5 @@
 package issue
 
-import "github.com/benbjohnson/immutable"
-
 type Type struct {
     Id   string
     Name string
@@ -25,12 +23,12 @@ const (
 // TODO: replace with your ignored <issue-types>
 var Ignored = buildMap()
 
-func buildMap() *immutable.Map[string, bool] {
-    builder := immutable.NewMapBuilder[string, bool](nil)
+func buildMap() map[string]bool {
+    builder := make(map[string]bool)
 
     builder.Set("4444", true) // Subtask
     // builder.Set("3333", true) // Bug
     // etc.
 
-    return builder.Map()
+    return builder
 }

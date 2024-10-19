@@ -76,8 +76,8 @@ func ConvertIssueTypesToMap(issueTypes []network.IssueType) (map[string]branch.T
 
     var buffer strings.Builder
     for idx, i := range issueTypes {
-        _, ok := issue.Ignored[i.Id]
-        if ok {
+        _, hasIgnored := issue.Ignored[i.Id]
+        if hasIgnored {
             buffer.WriteString("- ")
             buffer.WriteString(i.Name)
             buffer.WriteString("[")
@@ -98,7 +98,7 @@ func ConvertIssueTypesToMap(issueTypes []network.IssueType) (map[string]branch.T
         issueMap[i.Id] = name
     }
 
-    log.Warn().Printf("convert:\nignore issue types:\n%s", buffer.String())
+    log.Warn().Printf("ignored issue types:\n%s", buffer.String())
 
     return issueMap, nil
 }

@@ -42,7 +42,7 @@ func NewClient(client *http.Client) Client {
 }
 
 func (c *networkClient) GetJiraIssueTypes() ([]IssueType, error) {
-    log.Debug().Println("get issuetype: request issue types")
+    log.Info().Println("sending request <issuetype>")
     path := "issuetype"
 
     response, err := c.sendRequest(path)
@@ -60,7 +60,7 @@ func (c *networkClient) GetJiraIssueTypes() ([]IssueType, error) {
 }
 
 func (c *networkClient) GetJiraIssue(issueKey string) (*JiraIssue, error) {
-    log.Debug().Println("get issue: request issue")
+    log.Info().Println("sending request <issue>")
     path := fmt.Sprintf("issue/%s?fields=issuetype,summary", issueKey)
 
     response, err := c.sendRequest(path)
@@ -95,10 +95,12 @@ func addAuthHeader(request *http.Request, credentials *jiraCredentials) {
     isBasicAuth := len(credentials.email) > 0
 
     if isBasicAuth {
+        log.Debug().Println("prepare request: basic auth")
         request.SetBasicAuth(credentials.email, credentials.token)
         return
     }
 
+    log.Debug().Println("prepare request: bearer auth")
     bearer := "Bearer " + credentials.token
     request.Header.Add("Authorization", bearer)
 }
@@ -112,6 +114,7 @@ func (c *networkClient) sendRequest(path string) (*Response, error) {
     log.Debug().Println("send request: enqueue request")
     response, err := c.client.Do(request)
     if err != nil {
+        log.Warn().Println("verify auth type (basic or bearer)")
         return nil, fmt.Errorf("send request: %w", err)
     }
 
@@ -127,20 +130,19 @@ func (c *networkClient) sendRequest(path string) (*Response, error) {
         return nil, fmt.Errorf("send request: read response bytes: %w", err)
     }
 
-    log.Debug().Printf("send request: status code = %d", response.StatusCode)
-    if response.StatusCode != http.StatusOK {
-        var jiraError JiraError
-        if err := json.Unmarshal(body, &jiraError); err != nil {
-            return nil, fmt.Errorf("send request: (%d) unmarshal error: %w", response.StatusCode, err)
-        }
-
-        errors := strings.Join(jiraError.ErrorMessages[:], "\n")
-
-        return nil, fmt.Errorf("send request: (%d) Jira API: %s", response.StatusCode, errors)
+    log.Info().Printf("status code = %d", response.StatusCode)
+    if response.StatusCode == http.StatusOK {
+        return &Response{
+            statusCode: response.StatusCode,
+            body:       body,
+        }, nil
     }
 
-    return &Response{
-        statusCode: response.StatusCode,
-        body:       body,
-    }, nil
+    var jiraError JiraError
+    if err := json.Unmarshal(body, &jiraError); err != nil {
+        return nil, fmt.Errorf("send request: unmarshal error: %w", err)
+    }
+
+    errors := strings.Join(jiraError.ErrorMessages[:], "\n")
+    return nil, fmt.Errorf("send request: Jira API: %s", errors)
 }

@@ -26,6 +26,7 @@ func ReadEnvVariables() error {
         return fmt.Errorf("read env: load: %w", err)
     }
 
+    log.Info().Println("environment loaded")
     return nil
 }
 
@@ -33,13 +34,14 @@ func HasBranch(branchName string) bool {
     err := exec.Command("git", "branch", "--contains", branchName).Run()
 
     doesExist := err == nil
-    log.Debug().Printf("has branch: %s exists = %t", branchName, doesExist)
+    log.Info().Printf("%s exists locally - %t", branchName, doesExist)
 
     return doesExist
 }
 
 func Checkout(branchName string, hasBranch bool) (string, error) {
     args := []string{"checkout", branchName}
+    log.Info().Println("executing checkout")
     log.Debug().Printf("checkout: args: %s", args)
 
     if !hasBranch {

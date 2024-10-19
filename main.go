@@ -57,21 +57,29 @@ func main() {
         os.Exit(1)
     }
 
-    jiraIssueTypes, err := client.GetJiraIssueTypes()
+    branchType, err := parseBranchType(input)
     if err != nil {
         log.Error().Println(err)
         os.Exit(1)
     }
 
-    branchType, err := getIssueType(input, jiraIssue.Fields.Type, jiraIssueTypes)
-    if err != nil {
-        log.Error().Println(err)
-        os.Exit(1)
+    if branchType == branch.NULL {
+        jiraIssueTypes, err := client.GetJiraIssueTypes()
+        if err != nil {
+            log.Error().Println(err)
+            os.Exit(1)
+        }
+
+        branchType, err = convertIssueTypeToBranchType(jiraIssue.Fields.Type, jiraIssueTypes)
+        if err != nil {
+            log.Error().Println(err)
+            os.Exit(1)
+        }
     }
 
     branchName := branch.BuildName(branchType, *jiraIssue)
-
     hasBranch := command.HasBranch(branchName)
+
     checkoutCommand, err := command.Checkout(branchName, hasBranch)
     if err != nil {
         log.Error().Println(err)
@@ -104,17 +112,20 @@ func readUserInput() *common.Input {
     }
 
     log.Debug().Printf("user input: -i=%s -t=%s", input.Issue, input.Argument)
-
     return input
 }
 
-func getIssueType(input *common.Input, jiraIssueType network.IssueType, types []network.IssueType) (branch.Type, error) {
+func parseBranchType(input *common.Input) (branch.Type, error) {
     if len(input.Argument) > 0 {
         log.Debug().Printf("get issue type: user override: %s", input.Argument)
         return common.ConvertUserInputToBranchType(input.Argument)
     }
     log.Debug().Println("get issue type: no user override, take Issue Types from Jira")
 
+    return branch.NULL, nil
+}
+
+func convertIssueTypeToBranchType(jiraIssueType network.IssueType, types []network.IssueType) (branch.Type, error) {
     mappedIssueTypes, err := common.ConvertIssueTypesToMap(types)
     if err != nil {
         return branch.NULL, fmt.Errorf("get issue type: %w", err)

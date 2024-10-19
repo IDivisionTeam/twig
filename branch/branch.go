@@ -14,6 +14,7 @@ const (
 )
 
 func BuildName(bt Type, jiraIssue network.JiraIssue) string {
+    log.Info().Println("preparing branch")
     branchType := bt.ToString()
     log.Debug().Printf("build name: issue %s[%s] with branch type of %s", jiraIssue.Key, jiraIssue.Id, branchType)
 
@@ -41,7 +42,10 @@ func stripRegex(in string) string {
     log.Debug().Printf("strip regex: transform: %s", in)
 
     reg, _ := regexp.Compile("[^a-zA-Z0-9]+")
-    return reg.ReplaceAllString(in, wordSeparator)
+    result := reg.ReplaceAllString(in, wordSeparator)
+
+    log.Debug().Printf("strip regex: transform: %s", result)
+    return result
 }
 
 func replacePhrases(in string) string {
@@ -55,5 +59,6 @@ func replacePhrases(in string) string {
         phrase = re.ReplaceAllString(phrase, "")
     }
 
+    log.Debug().Printf("replace phrases: transform: %s", phrase)
     return phrase
 }

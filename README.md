@@ -20,6 +20,7 @@ BRCHA_HOST=example.atlassian.net
 BRCHA_EMAIL=email@example.com
 BRCHA_TOKEN=api_token
 ```
+>*NOTE: for* `Bearer` *auth leave* `BRCHA_EMAIL` *field empty!*
 
 2. Define mappings for your Jira issue types in the configuration the `issue.go` file.
 
@@ -42,10 +43,21 @@ const (
 You can `curl` available `issuetype`s from Jira.
 
 ```terminal
-curl --request GET \
-  --url 'https://{host}/rest/api/2/issuetype' \
-  --user 'email@example.com:<api_token>' \
-  --header 'Accept: application/json'
+curl \
+    -D- \
+    -X GET \
+    -u "email@example.com:token" \
+    -H "Content-Type: application/json" \
+    https://{host}/rest/api/2/issuetype
+```
+or
+```terminal
+curl \
+    -D- \
+    -X GET \
+    -H "Authrorization: Bearer {token}" \
+    -H "Content-Type: application/json" \
+    https://{host}/rest/api/2/issuetype
 ```
 
 3. Specify issue type IDs to ignore, if necessary.

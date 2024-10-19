@@ -16,7 +16,7 @@ type jiraCredentials struct {
     token string
 }
 
-func withJiraCredentials() *jiraCredentials {
+func readJiraCredentials() *jiraCredentials {
     return &jiraCredentials{
         host:  os.Getenv("BRCHA_HOST"),
         email: os.Getenv("BRCHA_EMAIL"),
@@ -36,7 +36,7 @@ type networkClient struct {
 
 func NewClient(client *http.Client) Client {
     return &networkClient{
-        credentials: withJiraCredentials(),
+        credentials: readJiraCredentials(),
         client:      client,
     }
 }
@@ -85,10 +85,22 @@ func (c *networkClient) prepareRequest(path string) (*http.Request, error) {
         return nil, fmt.Errorf("prepare request: %w", err)
     }
 
-    request.SetBasicAuth(c.credentials.email, c.credentials.token)
+    addAuthHeader(request, c.credentials)
     request.Header.Set("Content-Type", "application/json; charset=UTF-8")
 
     return request, nil
+}
+
+func addAuthHeader(request *http.Request, credentials *jiraCredentials) {
+    isBasicAuth := len(credentials.email) > 0
+
+    if isBasicAuth {
+        request.SetBasicAuth(credentials.email, credentials.token)
+        return
+    }
+
+    bearer := "Bearer " + credentials.token
+    request.Header.Add("Authorization", bearer)
 }
 
 func (c *networkClient) sendRequest(path string) (*Response, error) {

@@ -47,10 +47,13 @@ func stripRegex(in string) string {
 func replacePhrases(in string) string {
     log.Debug().Printf("replace phrases: transform: %s", in)
 
-    phrase := strings.ReplaceAll(in, "[Android]", "")
-    phrase = strings.ReplaceAll(phrase, "[iOS]", "")
-    phrase = strings.ReplaceAll(phrase, "[BE]", "")
-    phrase = strings.ReplaceAll(phrase, "[WEB]", "")
+    phrases := [8]string{"front", "mobile", "android", "ios", "be", "web", "spike", "eval"}
+
+    phrase := in
+    for _, v := range phrases {
+        re := regexp.MustCompile("(?i)[" + v + "]")
+        phrase = re.ReplaceAllString(phrase, "")
+    }
 
     return phrase
 }

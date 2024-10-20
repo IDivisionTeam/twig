@@ -16,21 +16,21 @@ A tool for seamless branch creation by passing the Issue Key into the CLI. It us
 1. Configure your Jira API settings in the `.env` file.
 
 ```.env
-BRCHA_HOST="example.atlassian.net"
-BRCHA_EMAIL="email@example.com"
-BRCHA_TOKEN="api_token"
+BRCHA_HOST=example.atlassian.net
+BRCHA_EMAIL=email@example.com
+BRCHA_TOKEN=api_token
 ```
 >*NOTE: for* `Bearer` *auth leave* `BRCHA_EMAIL` *field empty!*
 
 2. Define mappings for your Jira issue types in the configuration the `.env` file. Use zero if you want to ignore a specific type.
 
 ```.env
-BRCHA_MAPPING="build:0;chore:0;ci:0;docs:0;feat:0;fix:0;pref:0;refactor:0;revert:0;style:0;test:0"
+BRCHA_MAPPING=build:0;chore:0;ci:0;docs:0;feat:0;fix:0;pref:0;refactor:0;revert:0;style:0;test:0
 ```
 
 If you have multiple IDs of the same type, separate them with a comma (`,`).
 ```.env
-BRCHA_MAPPING="build:10001,10002,10003;..."
+BRCHA_MAPPING=build:10001,10002,10003;...
 ```
 
 You can `curl` available `issuetype`s from Jira.

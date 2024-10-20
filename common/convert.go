@@ -6,43 +6,9 @@ import (
     "brcha/log"
     "brcha/network"
     "fmt"
-    "strings"
 )
 
-func ConvertIssueToBranchType(issueType network.IssueType) (branch.Type, error) {
-    switch issueType.Id {
-    case issue.Build:
-        return branch.BUILD, nil
-    case issue.Chore:
-        return branch.CHORE, nil
-    case issue.Ci:
-        return branch.CI, nil
-    case issue.Docs:
-        return branch.DOCS, nil
-    case issue.Feat:
-        return branch.FEAT, nil
-    case issue.Fix:
-        return branch.FIX, nil
-    case issue.Perf:
-        return branch.PERF, nil
-    case issue.Refactor:
-        return branch.REFACTOR, nil
-    case issue.Revert:
-        return branch.REVERT, nil
-    case issue.Style:
-        return branch.STYLE, nil
-    case issue.Test:
-        return branch.TEST, nil
-    default:
-        return branch.NULL, fmt.Errorf("convert: unsupported issue type %s(%s)", issueType.Name, issueType.Id)
-    }
-}
-
 func ConvertUserInputToBranchType(input string) (branch.Type, error) {
-    if len(input) == 0 {
-        return branch.NULL, nil
-    }
-
     switch input {
     case "build", "b":
         return branch.BUILD, nil
@@ -71,34 +37,25 @@ func ConvertUserInputToBranchType(input string) (branch.Type, error) {
     }
 }
 
-func ConvertIssueTypesToMap(issueTypes []network.IssueType) (map[string]branch.Type, error) {
+func ConvertIssueTypesToMap(localTypes string, issueTypes []network.IssueType) (map[string]branch.Type, error) {
+    local := issue.ParseIssueMapping(localTypes)
     issueMap := make(map[string]branch.Type)
 
-    var buffer strings.Builder
-    for idx, i := range issueTypes {
-        _, hasIgnored := issue.Ignored[i.Id]
-        if hasIgnored {
-            buffer.WriteString("- ")
-            buffer.WriteString(i.Name)
-            buffer.WriteString("[")
-            buffer.WriteString(i.Id)
-            buffer.WriteString("]")
-            if idx != len(issueTypes)-1 {
-                buffer.WriteString("\n")
-            }
+    for _, i := range issueTypes {
+        id, ok := local[i.Id]
+        if !ok {
+            log.Warn().Println(fmt.Errorf("convert: unsupported issue type %s[%s]", i.Name, i.Id))
             continue
         }
 
-        name, err := ConvertIssueToBranchType(i)
+        name, err := ConvertUserInputToBranchType(id)
         if err != nil {
-            log.Warn().Printf("convert: map network to local: %v", err)
+            log.Warn().Println(err)
             continue
         }
 
         issueMap[i.Id] = name
     }
-
-    log.Warn().Printf("ignored issue types:\n%s", buffer.String())
 
     return issueMap, nil
 }

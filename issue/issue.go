@@ -1,34 +1,29 @@
 package issue
 
-type Type struct {
-    Id   string
-    Name string
-}
-
-// TODO: replace with your <issue-types>
-const (
-    Build    = "1000"
-    Chore    = "2000"
-    Ci       = "3000"
-    Docs     = "4000"
-    Feat     = "5000"
-    Fix      = "6000"
-    Perf     = "7000"
-    Refactor = "8000"
-    Revert   = "9000"
-    Style    = "1010"
-    Test     = "1100"
+import (
+    "brcha/log"
+    "strings"
 )
 
-// TODO: replace with your ignored <issue-types>
-var Ignored = buildMap()
+func ParseIssueMapping(raw string) map[string]string {
+    result := make(map[string]string)
 
-func buildMap() map[string]bool {
-    builder := make(map[string]bool)
+    types := strings.Split(raw, ";")
+    for _, t := range types {
+        elements := strings.Split(t, ":")
 
-    builder["4444"] = true // Subtask
-    // builder["3333"] = true // Bug
-    // etc.
+        commitType := elements[0]
+        values := strings.Split(elements[1], ",")
 
-    return builder
+        for _, v := range values {
+            if v == "0" {
+                continue
+            }
+            
+            result[v] = commitType
+        }
+    }
+
+    log.Debug().Printf("issue: parsed: %v", result)
+    return result
 }

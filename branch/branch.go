@@ -16,7 +16,7 @@ const (
 func BuildName(bt Type, jiraIssue network.JiraIssue) string {
     log.Info().Println("preparing branch")
     branchType := bt.ToString()
-    log.Debug().Printf("build name: issue %s[%s] with branch type of %s", jiraIssue.Key, jiraIssue.Id, branchType)
+    log.Debug().Printf("build name: issue %s[%s] with branch type of '%s'", jiraIssue.Key, jiraIssue.Fields.Type.Id, branchType)
 
     var buffer strings.Builder
 

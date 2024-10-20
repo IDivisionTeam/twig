@@ -4,8 +4,8 @@ import (
     "brcha/branch"
     "brcha/command"
     "brcha/common"
-    "brcha/network"
     "brcha/log"
+    "brcha/network"
     "flag"
     "fmt"
     "net/http"
@@ -125,8 +125,9 @@ func parseBranchType(input *common.Input) (branch.Type, error) {
     return branch.NULL, nil
 }
 
-func convertIssueTypeToBranchType(jiraIssueType network.IssueType, types []network.IssueType) (branch.Type, error) {
-    mappedIssueTypes, err := common.ConvertIssueTypesToMap(types)
+func convertIssueTypeToBranchType(jiraIssueType network.IssueType, networkTypes []network.IssueType) (branch.Type, error) {
+    localTypes := os.Getenv("BRCHA_MAPPING")
+    mappedIssueTypes, err := common.ConvertIssueTypesToMap(localTypes, networkTypes)
     if err != nil {
         return branch.NULL, fmt.Errorf("get issue type: %w", err)
     }

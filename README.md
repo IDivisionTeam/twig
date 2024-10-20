@@ -1,4 +1,4 @@
-# brcha  ![brcha](https://img.shields.io/badge/brcha-v1.0.0-green.svg)
+# brcha  ![brcha](https://img.shields.io/badge/brcha-v1.0.1-green.svg)
 
 ## Overview
 
@@ -16,28 +16,21 @@ A tool for seamless branch creation by passing the Issue Key into the CLI. It us
 1. Configure your Jira API settings in the `.env` file.
 
 ```.env
-BRCHA_HOST=example.atlassian.net
-BRCHA_EMAIL=email@example.com
-BRCHA_TOKEN=api_token
+BRCHA_HOST="example.atlassian.net"
+BRCHA_EMAIL="email@example.com"
+BRCHA_TOKEN="api_token"
 ```
 >*NOTE: for* `Bearer` *auth leave* `BRCHA_EMAIL` *field empty!*
 
-2. Define mappings for your Jira issue types in the configuration the `issue.go` file.
+2. Define mappings for your Jira issue types in the configuration the `.env` file. Use zero if you want to ignore a specific type.
 
-```issue.go
-const (
-    Build    = "xxxxx"
-    Chore    = "xxxxx"
-    Ci       = "xxxxx"
-    Docs     = "xxxxx"
-    Feat     = "xxxxx"
-    Fix      = "xxxxx"
-    Perf     = "xxxxx"
-    Refactor = "xxxxx"
-    Revert   = "xxxxx"
-    Style    = "xxxxx"
-    Test     = "xxxxx"
-)
+```.env
+BRCHA_MAPPING="build:0;chore:0;ci:0;docs:0;feat:0;fix:0;pref:0;refactor:0;revert:0;style:0;test:0"
+```
+
+If you have multiple IDs of the same type, separate them with a comma (`,`).
+```.env
+BRCHA_MAPPING="build:10001,10002,10003;..."
 ```
 
 You can `curl` available `issuetype`s from Jira.
@@ -60,28 +53,20 @@ curl \
     https://{host}/rest/api/2/issuetype
 ```
 
-3. Specify issue type IDs to ignore, if necessary.
-
-```issue.go
-builder["xxxxx"] = true // Subtask
-builder["xxxxx"] = true // Epic
-// etc.
-```
-
-4. Copy `.env` file into `~/.config/brcha/` folder.
+3. Copy `.env` file into `~/.config/brcha/` folder.
 
 ```terminal
-mkdir -p ~/.config/brcha/
+mkdir -p ~/.config/brcha/ && \
 cp .env ~/.config/brcha/
 ```
 
-5. Compile the tool into an executable file.
+4. Compile the tool into an executable file.
 
 ```terminal
 go build
 ```
 
-6. Move the executable  into `/usr/local/bin` for easy global access.
+5. Move the executable  into `/usr/local/bin` for easy global access.
 
 ```terminal
 mv brcha /usr/local/bin

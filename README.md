@@ -53,20 +53,25 @@ curl \
     https://{host}/rest/api/2/issuetype
 ```
 
-3. Copy `.env` file into `~/.config/brcha/` folder.
+3. Specify the branch that will serve as the base when checking out before deleting local branches. This ensures consistency and avoids issues during cleanup operations.
+```.env
+BRCHA_DEV_BRANCH_NAME=develop
+```
+
+4. Copy `.env` file into `~/.config/brcha/` folder.
 
 ```terminal
 mkdir -p ~/.config/brcha/ && \
 cp .env ~/.config/brcha/
 ```
 
-4. Compile the tool into an executable file.
+5. Compile the tool into an executable file.
 
 ```terminal
 go build
 ```
 
-5. Move the executable  into `/usr/local/bin` for easy global access.
+6. Move the executable  into `/usr/local/bin` for easy global access.
 
 ```terminal
 mv brcha /usr/local/bin
@@ -114,6 +119,12 @@ Available branch types
 - `style`, `s` - Changes that do not affect the meaning of the code (white-space, formatting, missing semi-colons, etc)
 - `test`, `t` - Adding missing tests or correcting existing tests
 
+`clean` - Deletes all local branches which have Jira tickets in 'Done' state.
+
+```terminal
+brcha -clean
+```
+
 ## Configuration
 
 In case you want to experiment with custom branch formatting or extend existing methods go to `branch.go` file.
@@ -135,11 +146,16 @@ func BuildName(branchType string, jiraIssue JiraIssue) string {
 ## Examples
 
 ```terminal
-~% brcha -i XX-111 -t fx
-~% git checkout -b fix/XX-111_jira-issue-name
+~% brcha -i XX-111
+~% branch created: task/XX-111_jira-issue-name
 ```
 
 ```terminal
-~% brcha -i XX-111
-~% git checkout -b chore/XX-111_jira-issue-name
+~% brcha -i XX-111 -t fx
+~% branch created: fix/XX-111_jira-issue-name
+```
+
+```terminal
+~% brcha -clean
+~% branch deleted: fix/XX-111_jira-issue-name`
 ```

@@ -35,9 +35,15 @@ const (
         style, s: Changes that do not affect the meaning of the code (white-space, formatting, missing semi-colons, etc)
         test, t: Adding missing tests or correcting existing tests
 
-    Example:
+    Examples:
+        ~% brcha -i XX-111
+        ~% branch created: task/XX-111_jira-issue-name
+        ~%
         ~% brcha -i XX-111 -t fx
-        ~% git checkout -b fix/XX-111_jira-issue-name`
+        ~% branch created: fix/XX-111_jira-issue-name
+        ~%
+        ~% brcha -clean
+        ~% branch deleted: fix/XX-111_jira-issue-name`
 )
 
 func main() {

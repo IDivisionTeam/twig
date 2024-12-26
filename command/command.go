@@ -95,7 +95,7 @@ func ExecuteFetchPrune() (string, error) {
 }
 
 func DeleteLocalBranch(branchName string) (string, error) {
-    log.Info().Println("executing 'git branch delete'")
+    log.Info().Printf("executing 'git branch delete' %s", branchName)
 
     out, err := exec.Command("git", "branch", "-D", branchName).CombinedOutput()
     if err != nil {

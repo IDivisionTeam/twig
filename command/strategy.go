@@ -146,14 +146,12 @@ func (dlb *deleteLocalBranchStrategy) Execute() error {
     if err != nil {
         return err
     }
-    log.Info().Printf("delete branches: %s", deleteCommand)
+    log.Info().Printf("delete branch: %s", deleteCommand)
 
     return nil
 }
 
 func deleteBranchesIfAny(statuses map[string]network.IssueStatusCategory) (string, error) {
-    log.Info().Printf("delete branches: %+v", statuses)
-
     var logs string
     for branchName, status := range statuses {
         if status.Id == 3 {
@@ -167,25 +165,23 @@ func deleteBranchesIfAny(statuses map[string]network.IssueStatusCategory) (strin
     }
 
     if logs == "" {
-        return "", fmt.Errorf("delete branches: no Jira issues in DONE status")
+        return "", fmt.Errorf("delete branch: no associated Jira issues in DONE status")
     }
 
     return logs, nil
 }
 
 func pairBranchesWithStatuses(client network.Client, issues map[string]string) (map[string]network.IssueStatusCategory, error) {
-    log.Info().Println("pair branch with status")
-
     statuses := make(map[string]network.IssueStatusCategory)
 
-    for issue, localBranch := range issues {
+    for localBranch, issue := range issues {
         jiraIssue, err := client.GetJiraIssueStatus(issue)
 
         if err != nil {
             continue
         }
 
-        log.Debug().Printf("pair branch with status: %+v %s", jiraIssue.Fields.Status.Category, localBranch)
+        log.Info().Printf("pair branch with status: [%s] : %s", jiraIssue.Fields.Status.Category.Name, localBranch)
         statuses[localBranch] = jiraIssue.Fields.Status.Category
     }
 
@@ -197,19 +193,19 @@ func pairBranchesWithStatuses(client network.Client, issues map[string]string) (
 }
 
 func pairBranchesWithIssues(rawBranches string) (map[string]string, error) {
-    log.Info().Println("pair branch with issue")
-
     localBranches := strings.Split(rawBranches, "\n")
     issues := make(map[string]string)
 
     for _, localBranch := range localBranches {
-        issue, err := branch.ExtractIssueNameFromBranch(localBranch)
+        trimmedBranchName := strings.Join(strings.Fields(localBranch), "")
+
+        issue, err := branch.ExtractIssueNameFromBranch(trimmedBranchName)
         if err != nil || issue == "" {
             continue
         }
 
-        log.Debug().Printf("pair branch with issue: [%s] %s", issue, localBranch)
-        issues[issue] = localBranch
+        log.Info().Printf("pair branch with issue: [%s] : %s", issue, trimmedBranchName)
+        issues[trimmedBranchName] = issue
     }
 
     if len(issues) == 0 {

@@ -49,7 +49,12 @@ func (clb *createLocalBranchStrategy) Execute() error {
         }
     }
 
-    branchName := branch.BuildName(branchType, *jiraIssue)
+    excludePhrases := os.Getenv("BRCHA_EXCLUDE_PHRASES")
+    if excludePhrases == "" {
+        log.Warn().Println("BRCHA_EXCLUDE_PHRASES is not set")
+    }
+
+    branchName := branch.BuildName(branchType, *jiraIssue, excludePhrases)
     hasBranch := HasBranch(branchName)
 
     checkoutCommand, err := Checkout(branchName, hasBranch)
@@ -72,7 +77,10 @@ func parseBranchType(input *common.Input) (branch.Type, error) {
 }
 
 func convertIssueTypeToBranchType(jiraIssueType network.IssueType, networkTypes []network.IssueType) (branch.Type, error) {
-    localTypes := os.Getenv("BRCHA_MAPPING")
+    localTypes := os.Getenv("BRCHA_TYPE_MAPPING")
+    if localTypes == "" {
+        return branch.NULL, fmt.Errorf("get issue type: BRCHA_TYPE_MAPPING is not set")
+    }
 
     mappedIssueTypes, err := common.ConvertIssueTypesToMap(localTypes, networkTypes)
     if err != nil {
@@ -102,7 +110,9 @@ func (dlb *deleteLocalBranchStrategy) Execute() error {
     if err != nil {
         return err
     }
-    log.Info().Println(fetchCommand)
+    if fetchCommand != "" {
+        log.Info().Println(fetchCommand)
+    }
 
     if err := BranchStatus(); err != nil {
         return err

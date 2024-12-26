@@ -25,12 +25,12 @@ BRCHA_TOKEN=api_token
 2. Define mappings for your Jira issue types in the configuration the `.env` file. Use zero if you want to ignore a specific type.
 
 ```.env
-BRCHA_MAPPING=build:0;chore:0;ci:0;docs:0;feat:0;fix:0;pref:0;refactor:0;revert:0;style:0;test:0
+BRCHA_TYPE_MAPPING=build:0;chore:0;ci:0;docs:0;feat:0;fix:0;pref:0;refactor:0;revert:0;style:0;test:0
 ```
 
 If you have multiple IDs of the same type, separate them with a comma (`,`).
 ```.env
-BRCHA_MAPPING=build:10001,10002,10003;...
+BRCHA_TYPE_MAPPING=build:10001,10002,10003;...
 ```
 
 You can `curl` available `issuetype`s from Jira.
@@ -58,20 +58,25 @@ curl \
 BRCHA_DEV_BRANCH_NAME=develop
 ```
 
-4. Copy `.env` file into `~/.config/brcha/` folder.
+4. Specify any exclusion phrases to be removed from the branch name, if applicable.
+```.env
+BRCHA_EXCLUDE_PHRASES=front,mobile,android,ios,be,web,spike,eval
+```
+
+5. Copy `.env` file into `~/.config/brcha/` folder.
 
 ```terminal
 mkdir -p ~/.config/brcha/ && \
 cp .env ~/.config/brcha/
 ```
 
-5. Compile the tool into an executable file.
+6. Compile the tool into an executable file.
 
 ```terminal
 go build
 ```
 
-6. Move the executable  into `/usr/local/bin` for easy global access.
+7. Move the executable  into `/usr/local/bin` for easy global access.
 
 ```terminal
 mv brcha /usr/local/bin

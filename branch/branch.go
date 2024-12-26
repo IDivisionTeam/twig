@@ -14,14 +14,14 @@ const (
     wordSeparator       string = "-"
 )
 
-func BuildName(bt Type, jiraIssue network.JiraIssue) string {
+func BuildName(bt Type, jiraIssue network.JiraIssue, excludePhrases string) string {
     log.Info().Println("preparing branch")
     branchType := bt.ToString()
     log.Debug().Printf("build name: issue %s[%s] with branch type of '%s'", jiraIssue.Key, jiraIssue.Fields.Type.Id, branchType)
 
     var buffer strings.Builder
 
-    summary := replacePhrases(*jiraIssue.Fields.Summary)
+    summary := replacePhrases(*jiraIssue.Fields.Summary, excludePhrases)
     summary = strings.ToLower(summary)
     summary = strings.TrimSpace(summary)
     summary = stripRegex(summary)
@@ -49,10 +49,10 @@ func stripRegex(in string) string {
     return result
 }
 
-func replacePhrases(in string) string {
+func replacePhrases(in string, rawPhrases string) string {
     log.Debug().Printf("replace phrases: transform: %s", in)
 
-    phrases := [8]string{"front", "mobile", "android", "ios", "be", "web", "spike", "eval"}
+    phrases := strings.Split(rawPhrases, ",")
 
     phrase := in
     for _, v := range phrases {

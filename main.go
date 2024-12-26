@@ -21,6 +21,7 @@ const (
         -i <issue-key>
         -t <branch-type>
         -clean
+        -o <remote-origin>
 
     Available branch types:
         build, b: Changes that affect the build system or external dependencies (example scopes: gradle, npm)
@@ -43,7 +44,11 @@ const (
         ~% branch created: fix/XX-111_jira-issue-name
         ~%
         ~% brcha -clean
-        ~% branch deleted: fix/XX-111_jira-issue-name`
+        ~% branch deleted: fix/XX-111_jira-issue-name
+        ~%
+        ~% brcha -clean -o origin
+        ~% branch deleted: fix/XX-111_jira-issue-name
+        ~% branch deleted: origin/fix/XX-111_jira-issue-name`
 )
 
 func main() {

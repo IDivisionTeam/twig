@@ -130,6 +130,12 @@ Available branch types
 brcha -clean
 ```
 
+`-o <remote-origin>` - (optional) Allows the deletion of remote branches alongside their corresponding local branches. Remote branches cannot be deleted without the presence of a local branch.
+
+```terminal
+brcha -clean -o origin
+```
+
 ## Configuration
 
 In case you want to experiment with custom branch formatting or extend existing methods go to `branch.go` file.
@@ -163,4 +169,10 @@ func BuildName(branchType string, jiraIssue JiraIssue) string {
 ```terminal
 ~% brcha -clean
 ~% branch deleted: fix/XX-111_jira-issue-name`
+```
+
+```terminal
+~% brcha -clean -o origin
+~% branch deleted: fix/XX-111_jira-issue-name`
+~% remote branch deleted: origin/fix/XX-111_jira-issue-name`
 ```

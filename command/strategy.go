@@ -97,11 +97,13 @@ func convertIssueTypeToBranchType(jiraIssueType network.IssueType, networkTypes 
 
 type deleteLocalBranchStrategy struct {
     client network.Client
+    input *common.Input
 }
 
-func NewDeleteLocalBranchCommand(client network.Client) BrchaCommand {
+func NewDeleteLocalBranchCommand(client network.Client, input *common.Input) BrchaCommand {
     return &deleteLocalBranchStrategy{
         client: client,
+        input: input,
     }
 }
 
@@ -142,7 +144,7 @@ func (dlb *deleteLocalBranchStrategy) Execute() error {
         return err
     }
 
-    deleteCommand, err := deleteBranchesIfAny(statuses)
+    deleteCommand, err := deleteBranchesIfAny(dlb.input.Argument, statuses)
     if err != nil {
         return err
     }
@@ -151,7 +153,7 @@ func (dlb *deleteLocalBranchStrategy) Execute() error {
     return nil
 }
 
-func deleteBranchesIfAny(statuses map[string]network.IssueStatusCategory) (string, error) {
+func deleteBranchesIfAny(origin string, statuses map[string]network.IssueStatusCategory) (string, error) {
     var logs string
     for branchName, status := range statuses {
         if status.Id == 3 {
@@ -161,6 +163,15 @@ func deleteBranchesIfAny(statuses map[string]network.IssueStatusCategory) (strin
             }
 
             logs += "\n" + deleteCommand
+
+            if origin != "" {
+                remoteDeleteCommand, err := DeleteRemoteBranch(origin, branchName)
+                if err != nil {
+                    return "", err
+                }
+
+                logs += remoteDeleteCommand
+            }
         }
     }
 

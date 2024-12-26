@@ -58,8 +58,8 @@ func main() {
     client := network.NewClient(httpClient)
 
     var cmd command.BrchaCommand
-    if input == nil {
-        cmd = command.NewDeleteLocalBranchCommand(client)
+    if input.Issue == "" {
+        cmd = command.NewDeleteLocalBranchCommand(client, input)
     } else {
         cmd = command.NewCreateLocalBranchCommand(client, input)
     }
@@ -78,6 +78,7 @@ func readUserInput() *common.Input {
 
     flag.StringVar(&input.Issue, "i", "", "issue key")
     flag.StringVar(&input.Argument, "t", "", "(optional) overrides the type of branch")
+    flag.StringVar(&input.Argument, "o", "", "(optional) provides origin to delete remote branch")
     help := flag.Bool("help", false, "displays all available commands")
     clean := flag.Bool("clean", false, "deletes all local branches with Jira status Done")
 
@@ -89,8 +90,8 @@ func readUserInput() *common.Input {
     }
 
     if *clean == true {
-        log.Debug().Printf("user input: initiating clean")
-        return nil
+        log.Debug().Printf("user input: -o=%s", input.Argument)
+        return input
     }
 
     if (len(os.Args) == 1) || (input.Issue == "") {

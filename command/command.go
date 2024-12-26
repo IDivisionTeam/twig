@@ -34,14 +34,14 @@ func HasBranch(branchName string) bool {
     err := exec.Command("git", "branch", "--contains", branchName).Run()
 
     doesExist := err == nil
-    log.Info().Printf("%s exists locally = %t", branchName, doesExist)
+    log.Debug().Printf("%s exists locally = %t", branchName, doesExist)
 
     return doesExist
 }
 
 func Checkout(branchName string, hasBranch bool) (string, error) {
     args := []string{"checkout", branchName}
-    log.Info().Println("executing 'checkout'")
+    log.Info().Println("executing 'git checkout'")
     log.Debug().Printf("checkout: args: %s", args)
 
     if !hasBranch {
@@ -52,6 +52,54 @@ func Checkout(branchName string, hasBranch bool) (string, error) {
     out, err := exec.Command("git", args...).CombinedOutput()
     if err != nil {
         return "", fmt.Errorf("git checkout: %s%w", string(out), err)
+    }
+
+    return string(out), nil
+}
+
+func BranchStatus() error {
+    log.Info().Println("executing 'git status'")
+
+    out, err := exec.Command("git", "status", "-s").CombinedOutput()
+    if err != nil {
+        return err
+    }
+
+    if outputSize := len(string(out)); outputSize > 0 {
+        return fmt.Errorf("git status: current branch has uncommitted changes")
+    }
+
+    return nil
+}
+
+func GetLocalBranches() (string, error) {
+    log.Info().Println("executing 'git branch'")
+
+    out, err := exec.Command("git", "branch").CombinedOutput()
+    if err != nil {
+        return "", err
+    }
+
+    return string(out), nil
+}
+
+func ExecuteFetchPrune() (string, error) {
+    log.Info().Println("executing 'git fetch + prune'")
+
+    out, err := exec.Command("git", "fetch", "-p").CombinedOutput()
+    if err != nil {
+        return "", err
+    }
+
+    return string(out), nil
+}
+
+func DeleteLocalBranch(branchName string) (string, error) {
+    log.Info().Println("executing 'git branch delete'")
+
+    out, err := exec.Command("git", "branch", "-D", branchName).CombinedOutput()
+    if err != nil {
+        return "", err
     }
 
     return string(out), nil

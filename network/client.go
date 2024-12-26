@@ -27,6 +27,7 @@ func readJiraCredentials() *jiraCredentials {
 type Client interface {
     GetJiraIssueTypes() ([]IssueType, error)
     GetJiraIssue(issueKey string) (*JiraIssue, error)
+    GetJiraIssueStatus(issueKey string) (*JiraIssue, error)
 }
 
 type networkClient struct {
@@ -50,6 +51,8 @@ func (c *networkClient) GetJiraIssueTypes() ([]IssueType, error) {
         return nil, fmt.Errorf("get issue types: %w", err)
     }
 
+    log.Debug().Printf("response <issuetype>:\n%s", response.body)
+
     var jiraIssue []IssueType
     err = json.Unmarshal(response.body, &jiraIssue)
     if err != nil {
@@ -67,6 +70,27 @@ func (c *networkClient) GetJiraIssue(issueKey string) (*JiraIssue, error) {
     if err != nil {
         return nil, fmt.Errorf("get issue: %w", err)
     }
+
+    log.Debug().Printf("response <issue>:\n%s", response.body)
+
+    var jiraIssue JiraIssue
+    if err := json.Unmarshal(response.body, &jiraIssue); err != nil {
+        return nil, fmt.Errorf("get issue: (%d) unmarshal: %w", response.statusCode, err)
+    }
+
+    return &jiraIssue, nil
+}
+
+func (c *networkClient) GetJiraIssueStatus(issueKey string) (*JiraIssue, error) {
+    log.Info().Println("sending request <issue-status>")
+    path := fmt.Sprintf("issue/%s?fields=status", issueKey)
+
+    response, err := c.sendRequest(path)
+    if err != nil {
+        return nil, fmt.Errorf("get issue: %w", err)
+    }
+
+    log.Debug().Printf("response <issue-status>:\n%s", response.body)
 
     var jiraIssue JiraIssue
     if err := json.Unmarshal(response.body, &jiraIssue); err != nil {

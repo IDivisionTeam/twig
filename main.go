@@ -1,26 +1,26 @@
 package main
 
 import (
-    "brcha/branch"
     "brcha/command"
     "brcha/common"
     "brcha/log"
     "brcha/network"
     "flag"
-    "fmt"
     "net/http"
     "os"
 )
 
 const (
-    emptyCommandArguments string = "Use \"brcha -h\" or \"brcha -help\" for more information."
-    helpCommandOutput     string = `
+    emptyCommandArguments string = `
+    Use \"brcha -h\" or \"brcha -help\" for more information.`
+    helpCommandOutput string = `
     Usage:
         brcha [arguments]
 
     The arguments are:
         -i <issue-key>
         -t <branch-type>
+        -clean
 
     Available branch types:
         build, b: Changes that affect the build system or external dependencies (example scopes: gradle, npm)
@@ -51,42 +51,17 @@ func main() {
     httpClient := &http.Client{}
     client := network.NewClient(httpClient)
 
-    jiraIssue, err := client.GetJiraIssue(input.Issue)
-    if err != nil {
+    var cmd command.BrchaCommand
+    if input == nil {
+        cmd = command.NewDeleteLocalBranchCommand(client)
+    } else {
+        cmd = command.NewCreateLocalBranchCommand(client, input)
+    }
+
+    if err := cmd.Execute(); err != nil {
         log.Error().Println(err)
         os.Exit(1)
     }
-
-    branchType, err := parseBranchType(input)
-    if err != nil {
-        log.Error().Println(err)
-        os.Exit(1)
-    }
-
-    if branchType == branch.NULL {
-        jiraIssueTypes, err := client.GetJiraIssueTypes()
-        if err != nil {
-            log.Error().Println(err)
-            os.Exit(1)
-        }
-
-        branchType, err = convertIssueTypeToBranchType(jiraIssue.Fields.Type, jiraIssueTypes)
-        if err != nil {
-            log.Error().Println(err)
-            os.Exit(1)
-        }
-    }
-
-    branchName := branch.BuildName(branchType, *jiraIssue)
-    hasBranch := command.HasBranch(branchName)
-
-    checkoutCommand, err := command.Checkout(branchName, hasBranch)
-    if err != nil {
-        log.Error().Println(err)
-        os.Exit(1)
-    }
-
-    log.Info().Println(checkoutCommand)
 }
 
 func readUserInput() *common.Input {
@@ -98,6 +73,7 @@ func readUserInput() *common.Input {
     flag.StringVar(&input.Issue, "i", "", "issue key")
     flag.StringVar(&input.Argument, "t", "", "(optional) overrides the type of branch")
     help := flag.Bool("help", false, "displays all available commands")
+    clean := flag.Bool("clean", false, "deletes all local branches with Jira status Done")
 
     flag.Parse()
 
@@ -106,36 +82,16 @@ func readUserInput() *common.Input {
         os.Exit(0)
     }
 
-    if len(os.Args) == 1 {
+    if *clean == true {
+        log.Debug().Printf("user input: initiating clean")
+        return nil
+    }
+
+    if (len(os.Args) == 1) || (input.Issue == "") {
         log.Info().Println(emptyCommandArguments)
         os.Exit(0)
     }
 
     log.Debug().Printf("user input: -i=%s -t=%s", input.Issue, input.Argument)
     return input
-}
-
-func parseBranchType(input *common.Input) (branch.Type, error) {
-    if len(input.Argument) > 0 {
-        log.Debug().Printf("get issue type: user override: %s", input.Argument)
-        return common.ConvertUserInputToBranchType(input.Argument)
-    }
-    log.Debug().Println("get issue type: no user override, take Issue Types from Jira")
-
-    return branch.NULL, nil
-}
-
-func convertIssueTypeToBranchType(jiraIssueType network.IssueType, networkTypes []network.IssueType) (branch.Type, error) {
-    localTypes := os.Getenv("BRCHA_MAPPING")
-    mappedIssueTypes, err := common.ConvertIssueTypesToMap(localTypes, networkTypes)
-    if err != nil {
-        return branch.NULL, fmt.Errorf("get issue type: %w", err)
-    }
-
-    value, ok := mappedIssueTypes[jiraIssueType.Id]
-    if !ok {
-        return branch.NULL, fmt.Errorf("get issue type: mapped issue type does not exist")
-    }
-
-    return value, nil
 }

@@ -48,7 +48,7 @@ or
 curl \
     -D- \
     -X GET \
-    -H "Authrorization: Bearer {token}" \
+    -H "Authorization: Bearer {token}" \
     -H "Content-Type: application/json" \
     https://{host}/rest/api/2/issuetype
 ```

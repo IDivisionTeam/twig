@@ -3,6 +3,7 @@ package branch
 import (
     "brcha/log"
     "brcha/network"
+    "fmt"
     "regexp"
     "strings"
 )
@@ -20,7 +21,7 @@ func BuildName(bt Type, jiraIssue network.JiraIssue) string {
 
     var buffer strings.Builder
 
-    summary := replacePhrases(jiraIssue.Fields.Summary)
+    summary := replacePhrases(*jiraIssue.Fields.Summary)
     summary = strings.ToLower(summary)
     summary = strings.TrimSpace(summary)
     summary = stripRegex(summary)
@@ -61,4 +62,20 @@ func replacePhrases(in string) string {
 
     log.Debug().Printf("replace phrases: transform: %s", phrase)
     return phrase
+}
+
+func ExtractIssueNameFromBranch(branchName string) (string, error) {
+    log.Debug().Printf("extract phrase: issue: %s", branchName)
+    re := regexp.MustCompile(`[A-Z]+-\d+_`) // looking for XXXX-0000_
+
+    match := re.FindString(branchName)
+    match = strings.TrimSpace(match)
+    match = strings.TrimSuffix(match, issueTypeSeparator)
+
+    if match == "" {
+        return "", fmt.Errorf("extract phrase: issue: no matches")
+    }
+
+    log.Debug().Printf("extract phrase: issue: %s", match)
+    return match, nil
 }

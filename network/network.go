@@ -7,13 +7,23 @@ type JiraIssue struct {
 }
 
 type IssueFields struct {
-    Type    IssueType `json:"issuetype"`
-    Summary string    `json:"summary"`
+    Type    *IssueType   `json:"issuetype,omitempty"`
+    Summary *string      `json:"summary,omitempty"`
+    Status  *IssueStatus `json:"status,omitempty"`
 }
 
 type IssueType struct {
     Id   string `json:"id"`
     Name string `json:"name"`
+}
+
+type IssueStatus struct {
+    Category IssueStatusCategory `json:"statusCategory"`
+}
+
+type IssueStatusCategory struct {
+    Id   int    `json:"id"`
+    Name string `json:"key"`
 }
 
 type JiraError struct {

@@ -97,13 +97,13 @@ func convertIssueTypeToBranchType(jiraIssueType network.IssueType, networkTypes 
 
 type deleteLocalBranchStrategy struct {
     client network.Client
-    input *common.Input
+    input  *common.Input
 }
 
 func NewDeleteLocalBranchCommand(client network.Client, input *common.Input) BrchaCommand {
     return &deleteLocalBranchStrategy{
         client: client,
-        input: input,
+        input:  input,
     }
 }
 
@@ -144,42 +144,45 @@ func (dlb *deleteLocalBranchStrategy) Execute() error {
         return err
     }
 
-    deleteCommand, err := deleteBranchesIfAny(dlb.input.Argument, statuses)
-    if err != nil {
+    if err := deleteBranchesIfAny(dlb.input.Argument, statuses); err != nil {
         return err
     }
-    log.Info().Printf("delete branch: %s", deleteCommand)
 
     return nil
 }
 
-func deleteBranchesIfAny(origin string, statuses map[string]network.IssueStatusCategory) (string, error) {
-    var logs string
+func deleteBranchesIfAny(origin string, statuses map[string]network.IssueStatusCategory) error {
+    anyCompleted := false
+
     for branchName, status := range statuses {
         if status.Id == 3 {
             deleteCommand, err := DeleteLocalBranch(branchName)
             if err != nil {
-                return "", err
+                log.Error().Print(deleteCommand)
+                log.Error().Print(fmt.Errorf("delete local branch: [%s] %w\n", branchName, err))
+            } else {
+                log.Info().Print(deleteCommand)
             }
-
-            logs += "\n" + deleteCommand
 
             if origin != "" {
                 remoteDeleteCommand, err := DeleteRemoteBranch(origin, branchName)
                 if err != nil {
-                    return "", err
+                    log.Error().Print(remoteDeleteCommand)
+                    log.Error().Print(fmt.Errorf("delete remote branch: [%s] %w\n", branchName, err))
+                } else {
+                    log.Info().Print(remoteDeleteCommand)
                 }
-
-                logs += remoteDeleteCommand
             }
+
+            anyCompleted = true
         }
     }
 
-    if logs == "" {
-        return "", fmt.Errorf("delete branch: no associated Jira issues in DONE status")
+    if !anyCompleted {
+        return fmt.Errorf("delete branch: no associated Jira issues in DONE status")
     }
 
-    return logs, nil
+    return nil
 }
 
 func pairBranchesWithStatuses(client network.Client, issues map[string]string) (map[string]network.IssueStatusCategory, error) {

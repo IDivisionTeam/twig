@@ -2,7 +2,7 @@
 
 ## Overview
 
-A tool for seamless branch creation by passing the Issue Key into the CLI. It uses the Git and Jira APIs under the hood.
+Streamline your workflow with a CLI tool that integrates Git and Jira. Quickly create, name, and delete branches using the Issue Key, ensuring consistency and efficiency in branch management.
 
 ## Features
 
@@ -10,6 +10,7 @@ A tool for seamless branch creation by passing the Issue Key into the CLI. It us
 - Integration with Git and Jira: Leverages the Git and Jira APIs to streamline your workflow.
 - Automated Branch Naming: Automatically generates branch names based on Jira Ticket Summary, ensuring consistent and
   meaningful branch names.
+- Branch Deletion: Conveniently delete branches directly from the CLI for efficient repository management.
 
 ## Installation
 

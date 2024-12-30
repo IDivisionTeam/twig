@@ -142,12 +142,12 @@ brcha -clean -o origin
 In case you want to experiment with custom branch formatting or extend existing methods go to `branch.go` file.
 
 ```branch.go
-func BuildName(branchType string, jiraIssue JiraIssue) string {
-    summary := replacePhrases(jiraIssue.Fields.Summary)
+func BuildName(bt Type, jiraIssue network.JiraIssue, excludePhrases string) string {
+    summary := replacePhrases(*jiraIssue.Fields.Summary, excludePhrases)
     summary = strings.ToLower(summary)
     summary = strings.TrimSpace(summary)
     summary = stripRegex(summary)
-    summary = strings.TrimSuffix(summary, "-")
+    summary = strings.TrimSuffix(summary, wordSeparator)
 
     ...
 
@@ -169,11 +169,11 @@ func BuildName(branchType string, jiraIssue JiraIssue) string {
 
 ```terminal
 ~% brcha -clean
-~% branch deleted: fix/XX-111_jira-issue-name`
+~% branch deleted: fix/XX-111_jira-issue-name
 ```
 
 ```terminal
 ~% brcha -clean -o origin
-~% branch deleted: fix/XX-111_jira-issue-name`
-~% remote branch deleted: origin/fix/XX-111_jira-issue-name`
+~% branch deleted: fix/XX-111_jira-issue-name
+~% remote branch deleted: origin/fix/XX-111_jira-issue-name
 ```

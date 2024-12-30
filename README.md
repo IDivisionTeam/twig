@@ -71,7 +71,7 @@ mkdir -p ~/.config/brcha/ && \
 cp .env ~/.config/brcha/
 ```
 
-6. Compile the tool into an executable file.
+6. Compile the tool into an executable file or [download compiled executable](https://github.com/yaroslav-android/brcha/releases).
 
 ```terminal
 go build

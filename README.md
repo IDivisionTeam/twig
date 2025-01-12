@@ -187,6 +187,6 @@ func BuildName(bt Type, jiraIssue network.JiraIssue, excludePhrases string) stri
 
 ```terminal
 ~% brcha -clean -r origin -assignee example.user
-~% branch deleted: fix/XX-111_jira-issue-name`
-~% remote branch deleted: origin/fix/XX-111_jira-issue-name`
+~% branch deleted: fix/XX-111_jira-issue-name
+~% remote branch deleted: origin/fix/XX-111_jira-issue-name
 ```

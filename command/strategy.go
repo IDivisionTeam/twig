@@ -37,7 +37,7 @@ func (clb *createLocalBranchStrategy) Execute() error {
         return err
     }
 
-    branchType, err := parseBranchType(clb.input)
+    branchType, err := parseBranchType(*clb.input)
     if err != nil {
         return err
     }
@@ -71,7 +71,7 @@ func (clb *createLocalBranchStrategy) Execute() error {
     return nil
 }
 
-func parseBranchType(input *common.Input) (branch.Type, error) {
+func parseBranchType(input common.Input) (branch.Type, error) {
     brahchType, ok := input.Arguments[common.BranchType]
     if !ok {
         log.Debug().Println("get issue type: no user override, take Issue types from Jira")
@@ -145,19 +145,19 @@ func (dlb *deleteLocalBranchStrategy) Execute() error {
         return err
     }
 
-    statuses, err := pairBranchesWithStatuses(dlb.client, issues)
+    statuses, err := pairBranchesWithStatuses(*dlb.input, dlb.client, issues)
     if err != nil {
         return err
     }
 
-    if err := deleteBranchesIfAny(dlb.input, statuses); err != nil {
+    if err := deleteBranchesIfAny(*dlb.input, statuses); err != nil {
         return err
     }
 
     return nil
 }
 
-func deleteBranchesIfAny(input *common.Input, statuses map[string]network.IssueStatusCategory) error {
+func deleteBranchesIfAny(input common.Input, statuses map[string]network.IssueStatusCategory) error {
     anyCompleted := false
     remote, hasRemote := input.Arguments[common.Remote]
 
@@ -171,7 +171,7 @@ func deleteBranchesIfAny(input *common.Input, statuses map[string]network.IssueS
                 log.Info().Print(deleteCommand)
             }
 
-            if !hasRemote {
+            if hasRemote {
                 remoteDeleteCommand, err := DeleteRemoteBranch(remote, branchName)
                 if err != nil {
                     log.Error().Print(remoteDeleteCommand)
@@ -192,14 +192,29 @@ func deleteBranchesIfAny(input *common.Input, statuses map[string]network.IssueS
     return nil
 }
 
-func pairBranchesWithStatuses(client network.Client, issues map[string]string) (map[string]network.IssueStatusCategory, error) {
+func pairBranchesWithStatuses(input common.Input, client network.Client, issues map[string]string) (map[string]network.IssueStatusCategory, error) {
     statuses := make(map[string]network.IssueStatusCategory)
+    assignee, hasAssignee := input.Arguments[common.Assignee]
 
     for localBranch, issue := range issues {
-        jiraIssue, err := client.GetJiraIssueStatus(issue)
+        jiraIssue, err := client.GetJiraIssueStatus(issue, hasAssignee)
 
         if err != nil {
             continue
+        }
+
+        if hasAssignee {
+            email := jiraIssue.Fields.Assignee.Email
+
+            at := strings.Index(email, "@")
+            if at == -1 {
+                continue
+            }
+
+            username := strings.TrimSpace(email[:at])
+            if assignee != username {
+                continue
+            }
         }
 
         log.Info().Printf("pair branch with status: [%s] : %s", jiraIssue.Fields.Status.Category.Name, localBranch)

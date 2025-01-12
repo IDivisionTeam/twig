@@ -7,6 +7,7 @@ const (
     Issue InputType = iota
     BranchType
     Remote
+    Assignee
 )
 
 const (

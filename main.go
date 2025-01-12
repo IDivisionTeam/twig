@@ -21,6 +21,7 @@ const (
         -t <branch-type>
         -clean
         -r <remote>
+        -assignee <username>
 
     Available branch types:
         build, b: Changes that affect the build system or external dependencies (example scopes: gradle, npm)
@@ -46,6 +47,10 @@ const (
         ~% branch deleted: fix/XX-111_jira-issue-name
         ~%
         ~% brcha -clean -r origin
+        ~% branch deleted: fix/XX-111_jira-issue-name
+        ~% branch deleted: origin/fix/XX-111_jira-issue-name
+        ~%
+        ~% brcha -clean -r origin -assignee example.user
         ~% branch deleted: fix/XX-111_jira-issue-name
         ~% branch deleted: origin/fix/XX-111_jira-issue-name`
 )
@@ -90,7 +95,8 @@ func readUserInput() *common.Input {
     branchType := flag.String("t", "", "(optional) overrides the type of branch")
     clean := flag.Bool("clean", false, "deletes all local branches with Jira status Done")
     remote := flag.String("r", "", "(optional) provides remote to delete branch in origin")
-    
+    assignee := flag.String("assignee", "", "(optional) provides assignee to delete remote branch")
+
     flag.Parse()
 
     if help != nil && *help {
@@ -112,8 +118,8 @@ func readUserInput() *common.Input {
             input.Arguments[common.Remote] = *remote
         }
 
-        if author != nil && *author != "" {
-            input.Arguments[common.Author] = *author
+        if assignee != nil && *assignee != "" {
+            input.Arguments[common.Assignee] = *assignee
         }
     }
 
@@ -122,16 +128,6 @@ func readUserInput() *common.Input {
         os.Exit(0)
     }
 
-    if *clean == true {
-        log.Debug().Printf("user input: -o=%s", input.Argument)
-        return input
-    }
-
-    if (len(os.Args) == 1) || (input.Issue == "") {
-        log.Info().Println(emptyCommandArguments)
-        os.Exit(0)
-    }
-
-    log.Debug().Printf("user input: -i=%s -t=%s", input.Issue, input.Argument)
+    log.Debug().Printf("user input: flags=%d args=%+v", input.Flags, input.Arguments)
     return input
 }

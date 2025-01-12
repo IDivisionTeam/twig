@@ -18,7 +18,7 @@ Streamline your workflow with a CLI tool that integrates Git and Jira. Quickly c
 
 ```.env
 BRCHA_HOST=example.atlassian.net
-BRCHA_EMAIL=email@example.com
+BRCHA_EMAIL=example.user@example.com
 BRCHA_TOKEN=api_token
 ```
 >*NOTE: for* `Bearer` *auth leave* `BRCHA_EMAIL` *field empty!*
@@ -90,6 +90,7 @@ brcha [arguments]
 ```
 
 ## Commands
+> _Note: Remote branches can only be deleted if a corresponding local branch exists._
 
 `help` - Displays help information for all available commands and options in the CLI tool, providing usage instructions
 and examples. Use this command to understand how to use the tool effectively.
@@ -131,10 +132,16 @@ Available branch types
 brcha -clean
 ```
 
-`-r <remote>` - (optional) Allows the deletion of remote branches alongside their corresponding local branches. Remote branches cannot be deleted without the presence of a local branch.
+`-r <remote>` - (optional) Allows the deletion of remote branches alongside their corresponding local branches.
 
 ```terminal
 brcha -clean -r origin
+```
+
+`-assignee <username>` - (optional) Specifies the username (from the email) to verify that the Jira issue is assigned to you before permitting remote branch deletion. Use your Jira email, which might match `BRCHA_EMAIL`, e.g., `example.user@example.com`.
+
+```terminal
+brcha -clean -r origin -assignee example.user
 ```
 
 ## Configuration
@@ -176,4 +183,10 @@ func BuildName(bt Type, jiraIssue network.JiraIssue, excludePhrases string) stri
 ~% brcha -clean -o origin
 ~% branch deleted: fix/XX-111_jira-issue-name
 ~% remote branch deleted: origin/fix/XX-111_jira-issue-name
+```
+
+```terminal
+~% brcha -clean -r origin -assignee example.user
+~% branch deleted: fix/XX-111_jira-issue-name`
+~% remote branch deleted: origin/fix/XX-111_jira-issue-name`
 ```

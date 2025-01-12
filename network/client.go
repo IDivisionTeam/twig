@@ -27,7 +27,7 @@ func readJiraCredentials() *jiraCredentials {
 type Client interface {
     GetJiraIssueTypes() ([]IssueType, error)
     GetJiraIssue(issueKey string) (*JiraIssue, error)
-    GetJiraIssueStatus(issueKey string) (*JiraIssue, error)
+    GetJiraIssueStatus(issueKey string, hasAssignee bool) (*JiraIssue, error)
 }
 
 type networkClient struct {
@@ -81,9 +81,15 @@ func (c *networkClient) GetJiraIssue(issueKey string) (*JiraIssue, error) {
     return &jiraIssue, nil
 }
 
-func (c *networkClient) GetJiraIssueStatus(issueKey string) (*JiraIssue, error) {
+func (c *networkClient) GetJiraIssueStatus(issueKey string, hasAssignee bool) (*JiraIssue, error) {
     log.Info().Println("sending request <issue-status>")
-    path := fmt.Sprintf("issue/%s?fields=status", issueKey)
+
+    var path string
+    if hasAssignee {
+        path = fmt.Sprintf("issue/%s?fields=status,assignee", issueKey)
+    } else {
+        path = fmt.Sprintf("issue/%s?fields=status", issueKey)
+    }
 
     response, err := c.sendRequest(path)
     if err != nil {

@@ -11,9 +11,8 @@ import (
 )
 
 const (
-    emptyCommandArguments string = `
-    Use \"brcha -h\" or \"brcha -help\" for more information.`
-    helpCommandOutput string = `
+    emptyCommandArguments string = `Use "brcha -h" or "brcha -help" for more information.`
+    helpCommandOutput     string = `
     Usage:
         brcha [arguments]
 
@@ -21,7 +20,7 @@ const (
         -i <issue-key>
         -t <branch-type>
         -clean
-        -o <remote-origin>
+        -r <remote>
 
     Available branch types:
         build, b: Changes that affect the build system or external dependencies (example scopes: gradle, npm)
@@ -46,7 +45,7 @@ const (
         ~% brcha -clean
         ~% branch deleted: fix/XX-111_jira-issue-name
         ~%
-        ~% brcha -clean -o origin
+        ~% brcha -clean -r origin
         ~% branch deleted: fix/XX-111_jira-issue-name
         ~% branch deleted: origin/fix/XX-111_jira-issue-name`
 )
@@ -86,7 +85,8 @@ func readUserInput() *common.Input {
     flag.StringVar(&input.Argument, "o", "", "(optional) provides origin to delete remote branch")
     help := flag.Bool("help", false, "displays all available commands")
     clean := flag.Bool("clean", false, "deletes all local branches with Jira status Done")
-
+    remote := flag.String("r", "", "(optional) provides remote to delete branch in origin")
+    
     flag.Parse()
 
     if *help == true {

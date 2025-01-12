@@ -131,10 +131,10 @@ Available branch types
 brcha -clean
 ```
 
-`-o <remote-origin>` - (optional) Allows the deletion of remote branches alongside their corresponding local branches. Remote branches cannot be deleted without the presence of a local branch.
+`-r <remote>` - (optional) Allows the deletion of remote branches alongside their corresponding local branches. Remote branches cannot be deleted without the presence of a local branch.
 
 ```terminal
-brcha -clean -o origin
+brcha -clean -r origin
 ```
 
 ## Configuration

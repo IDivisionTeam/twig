@@ -105,10 +105,10 @@ func DeleteLocalBranch(branchName string) (string, error) {
     return string(out), nil
 }
 
-func DeleteRemoteBranch(origin string, branchName string) (string, error) {
-    log.Info().Printf("executing 'git branch remote delete' %s/%s", origin, branchName)
+func DeleteRemoteBranch(remote string, branchName string) (string, error) {
+    log.Info().Printf("executing 'git branch remote delete' %s/%s", remote, branchName)
 
-    out, err := exec.Command("git", "push", "-d", origin, branchName).CombinedOutput()
+    out, err := exec.Command("git", "push", "-d", remote, branchName).CombinedOutput()
     if err != nil {
         return string(out), err
     }

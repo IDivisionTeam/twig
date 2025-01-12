@@ -27,7 +27,12 @@ func NewCreateLocalBranchCommand(client network.Client, input *common.Input) Brc
 }
 
 func (clb *createLocalBranchStrategy) Execute() error {
-    jiraIssue, err := clb.client.GetJiraIssue(clb.input.Issue)
+    issue, ok := clb.input.Arguments[common.Issue]
+    if !ok {
+        return fmt.Errorf("create command: issue-key must not be null")
+    }
+
+    jiraIssue, err := clb.client.GetJiraIssue(issue)
     if err != nil {
         return err
     }
@@ -67,13 +72,14 @@ func (clb *createLocalBranchStrategy) Execute() error {
 }
 
 func parseBranchType(input *common.Input) (branch.Type, error) {
-    if len(input.Argument) > 0 {
-        log.Debug().Printf("get issue type: user override: %s", input.Argument)
-        return common.ConvertUserInputToBranchType(input.Argument)
+    brahchType, ok := input.Arguments[common.BranchType]
+    if !ok {
+        log.Debug().Println("get issue type: no user override, take Issue types from Jira")
+        return branch.NULL, nil
     }
-    log.Debug().Println("get issue type: no user override, take Issue Types from Jira")
 
-    return branch.NULL, nil
+    log.Debug().Printf("get issue type: user override: %s", brahchType)
+    return common.ConvertUserInputToBranchType(brahchType)
 }
 
 func convertIssueTypeToBranchType(jiraIssueType network.IssueType, networkTypes []network.IssueType) (branch.Type, error) {
@@ -144,15 +150,16 @@ func (dlb *deleteLocalBranchStrategy) Execute() error {
         return err
     }
 
-    if err := deleteBranchesIfAny(dlb.input.Argument, statuses); err != nil {
+    if err := deleteBranchesIfAny(dlb.input, statuses); err != nil {
         return err
     }
 
     return nil
 }
 
-func deleteBranchesIfAny(origin string, statuses map[string]network.IssueStatusCategory) error {
+func deleteBranchesIfAny(input *common.Input, statuses map[string]network.IssueStatusCategory) error {
     anyCompleted := false
+    remote, hasRemote := input.Arguments[common.Remote]
 
     for branchName, status := range statuses {
         if status.Id == 3 {
@@ -164,8 +171,8 @@ func deleteBranchesIfAny(origin string, statuses map[string]network.IssueStatusC
                 log.Info().Print(deleteCommand)
             }
 
-            if origin != "" {
-                remoteDeleteCommand, err := DeleteRemoteBranch(origin, branchName)
+            if !hasRemote {
+                remoteDeleteCommand, err := DeleteRemoteBranch(remote, branchName)
                 if err != nil {
                     log.Error().Print(remoteDeleteCommand)
                     log.Error().Print(fmt.Errorf("delete remote branch: [%s] %w\n", branchName, err))

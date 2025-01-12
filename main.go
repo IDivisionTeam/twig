@@ -51,18 +51,23 @@ const (
 )
 
 func main() {
+    input := readUserInput()
+
+    if input.HasFlag(common.HelpFlag) {
+        log.Info().Println(helpCommandOutput)
+        os.Exit(0)
+    }
+
     if err := command.ReadEnvVariables(); err != nil {
         log.Error().Println(err)
         os.Exit(1)
     }
 
-    input := readUserInput()
-
     httpClient := &http.Client{}
     client := network.NewClient(httpClient)
 
     var cmd command.BrchaCommand
-    if input.Issue == "" {
+    if input.HasFlag(common.CleanFlag) {
         cmd = command.NewDeleteLocalBranchCommand(client, input)
     } else {
         cmd = command.NewCreateLocalBranchCommand(client, input)
@@ -76,21 +81,44 @@ func main() {
 
 func readUserInput() *common.Input {
     var input = &common.Input{
-        Issue:    "",
-        Argument: "",
+        Flags:     common.EmptyFlag,
+        Arguments: make(map[common.InputType]string),
     }
 
-    flag.StringVar(&input.Issue, "i", "", "issue key")
-    flag.StringVar(&input.Argument, "t", "", "(optional) overrides the type of branch")
-    flag.StringVar(&input.Argument, "o", "", "(optional) provides origin to delete remote branch")
     help := flag.Bool("help", false, "displays all available commands")
+    issue := flag.String("i", "", "issue key")
+    branchType := flag.String("t", "", "(optional) overrides the type of branch")
     clean := flag.Bool("clean", false, "deletes all local branches with Jira status Done")
     remote := flag.String("r", "", "(optional) provides remote to delete branch in origin")
     
     flag.Parse()
 
-    if *help == true {
-        log.Info().Println(helpCommandOutput)
+    if help != nil && *help {
+        input.AddFlag(common.HelpFlag)
+    }
+
+    if issue != nil && *issue != "" {
+        input.Arguments[common.Issue] = *issue
+
+        if branchType != nil && *branchType != "" {
+            input.Arguments[common.BranchType] = *branchType
+        }
+    }
+
+    if clean != nil && *clean {
+        input.AddFlag(common.CleanFlag)
+
+        if remote != nil && *remote != "" {
+            input.Arguments[common.Remote] = *remote
+        }
+
+        if author != nil && *author != "" {
+            input.Arguments[common.Author] = *author
+        }
+    }
+
+    if (len(os.Args) == 1) || input.Flags == common.EmptyFlag && (len(input.Arguments) == 0) {
+        log.Error().Println(emptyCommandArguments)
         os.Exit(0)
     }
 

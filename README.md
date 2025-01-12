@@ -99,13 +99,13 @@ and examples. Use this command to understand how to use the tool effectively.
 brcha -help
 ```
 
-`-i <issue-key>` - The branch prefix after branch type. Uses Jira Issue Key.
+`i <issue-key>` - The branch prefix after branch type. Uses Jira Issue Key.
 
 ``` terminal
 brcha -i XXX-00
 ```
 
-`-t <branch-type>` - (optional) Overrides the type of branch to create, allowing the branch name ignore mapped Jira
+`t <branch-type>` - (optional) Overrides the type of branch to create, allowing the branch name ignore mapped Jira
 issue types. Branches are named according to the [standard](https://www.conventionalcommits.org/en/v1.0.0/).
 
 ``` terminal
@@ -132,13 +132,13 @@ Available branch types
 brcha -clean
 ```
 
-`-r <remote>` - (optional) Allows the deletion of remote branches alongside their corresponding local branches.
+`r <remote>` - (optional) Allows the deletion of remote branches alongside their corresponding local branches.
 
 ```terminal
 brcha -clean -r origin
 ```
 
-`-assignee <username>` - (optional) Specifies the username (from the email) to verify that the Jira issue is assigned to you before permitting remote branch deletion. Use your Jira email, which might match `BRCHA_EMAIL`, e.g., `example.user@example.com`.
+`assignee <username>` - (optional) Specifies the username (from the email) to verify that the Jira issue is assigned to you before permitting remote branch deletion. Use your Jira email, which might match `BRCHA_EMAIL`, e.g., `example.user@example.com`.
 
 ```terminal
 brcha -clean -r origin -assignee example.user

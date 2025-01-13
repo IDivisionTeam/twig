@@ -10,9 +10,16 @@ import (
     "os"
     "slices"
     "strings"
+    "sync"
+    "time"
 )
 
-const rateLimit = 5
+const (
+    requestLimit    = 5
+    itemsPerRequest = 100
+)
+
+var rate = time.Tick(time.Second / time.Duration(requestLimit))
 
 type BrchaCommand interface {
     Execute() error
@@ -200,7 +207,9 @@ func pairBranchesWithStatuses(input common.Input, client network.Client, issues 
     statuses := make(map[string]network.IssueStatusCategory)
     assignee, hasAssignee := input.Arguments[common.Assignee]
 
-    if len(issues) < rateLimit {
+    size := len(issues)
+
+    if size < itemsPerRequest {
         for localBranch, issue := range issues {
             jiraIssue, err := client.GetJiraIssueStatus(issue, hasAssignee)
 
@@ -222,12 +231,23 @@ func pairBranchesWithStatuses(input common.Input, client network.Client, issues 
             statuses[localBranch] = jiraIssue.Fields.Status.Category
         }
     } else {
+        statuses := make(map[string]network.IssueStatusCategory)
+        jiraIssues := make([]network.JiraIssue, len(issues))
         values := slices.Collect(maps.Values(issues))
+        attemptsNeeded := calculateAttempts(size)
 
-        jiraIssues, err := client.GetJiraIssueStatusBulk(values, hasAssignee)
-        if err != nil {
-            log.Warn().Printf("pair branch with status: %v", err)
+        var wg sync.WaitGroup
+        wg.Add(attemptsNeeded)
+
+        for i := 0; i < attemptsNeeded; i++ {
+            go func(batch int) {
+                defer wg.Done()
+
+                jiraIssues = append(jiraIssues, getJiraIssueStatusBulk(batch, client, values, hasAssignee)...)
+            }(i)
         }
+
+        wg.Wait()
 
         jiraKeyToIssueMap := make(map[string]network.JiraIssue)
         for _, jiraIssue := range jiraIssues {
@@ -240,7 +260,7 @@ func pairBranchesWithStatuses(input common.Input, client network.Client, issues 
             if hasAssignee {
                 email := jiraIssue.Fields.Assignee.Email
 
-                if err = validateJiraIssue(jiraIssue.Key, email, assignee); err != nil {
+                if err := validateJiraIssue(jiraIssue.Key, email, assignee); err != nil {
                     log.Warn().Printf("pair branch with status: %v", err)
                     continue
                 }
@@ -256,6 +276,29 @@ func pairBranchesWithStatuses(input common.Input, client network.Client, issues 
     }
 
     return statuses, nil
+}
+
+func getJiraIssueStatusBulk(batch int, client network.Client, values []string, hasAssignee bool) []network.JiraIssue {
+    <-rate
+
+    size := len(values)
+
+    start := batch * itemsPerRequest
+    end := start + itemsPerRequest
+    if end > size {
+        end = size
+    }
+
+    jiraIssues, err := client.GetJiraIssueStatusBulk(values[start:end-1], hasAssignee)
+    if err != nil {
+        log.Warn().Printf("pair branch with status: %v", err)
+    }
+
+    return jiraIssues
+}
+
+func calculateAttempts(size int) int {
+    return (size + itemsPerRequest - 1) / itemsPerRequest
 }
 
 func validateJiraIssue(issueKey, email, assignee string) error {

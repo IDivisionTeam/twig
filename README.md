@@ -1,4 +1,4 @@
-# brcha  ![brcha](https://img.shields.io/badge/brcha-v1.2.0-green.svg)
+# brcha  ![brcha](https://img.shields.io/badge/brcha-v1.2.1-green.svg)
 
 ## Overview
 

@@ -6,9 +6,13 @@ import (
     "brcha/log"
     "brcha/network"
     "fmt"
+    "maps"
     "os"
+    "slices"
     "strings"
 )
+
+const rateLimit = 5
 
 type BrchaCommand interface {
     Execute() error
@@ -196,29 +200,55 @@ func pairBranchesWithStatuses(input common.Input, client network.Client, issues 
     statuses := make(map[string]network.IssueStatusCategory)
     assignee, hasAssignee := input.Arguments[common.Assignee]
 
-    for localBranch, issue := range issues {
-        jiraIssue, err := client.GetJiraIssueStatus(issue, hasAssignee)
+    if len(issues) < rateLimit {
+        for localBranch, issue := range issues {
+            jiraIssue, err := client.GetJiraIssueStatus(issue, hasAssignee)
 
+            if err != nil {
+                log.Warn().Printf("pair branch with status: %v", err)
+                continue
+            }
+
+            if hasAssignee {
+                email := jiraIssue.Fields.Assignee.Email
+
+                if err = validateJiraIssue(jiraIssue.Key, email, assignee); err != nil {
+                    log.Warn().Printf("pair branch with status: %v", err)
+                    continue
+                }
+            }
+
+            log.Info().Printf("pair branch with status: [%s] : %s", jiraIssue.Fields.Status.Category.Name, localBranch)
+            statuses[localBranch] = jiraIssue.Fields.Status.Category
+        }
+    } else {
+        values := slices.Collect(maps.Values(issues))
+
+        jiraIssues, err := client.GetJiraIssueStatusBulk(values, hasAssignee)
         if err != nil {
-            continue
+            log.Warn().Printf("pair branch with status: %v", err)
         }
 
-        if hasAssignee {
-            email := jiraIssue.Fields.Assignee.Email
-
-            at := strings.Index(email, "@")
-            if at == -1 {
-                continue
-            }
-
-            username := strings.TrimSpace(email[:at])
-            if assignee != username {
-                continue
-            }
+        jiraKeyToIssueMap := make(map[string]network.JiraIssue)
+        for _, jiraIssue := range jiraIssues {
+            jiraKeyToIssueMap[jiraIssue.Key] = jiraIssue
         }
 
-        log.Info().Printf("pair branch with status: [%s] : %s", jiraIssue.Fields.Status.Category.Name, localBranch)
-        statuses[localBranch] = jiraIssue.Fields.Status.Category
+        for localBranch, issue := range issues {
+            jiraIssue := jiraKeyToIssueMap[issue]
+
+            if hasAssignee {
+                email := jiraIssue.Fields.Assignee.Email
+
+                if err = validateJiraIssue(jiraIssue.Key, email, assignee); err != nil {
+                    log.Warn().Printf("pair branch with status: %v", err)
+                    continue
+                }
+            }
+
+            log.Info().Printf("pair branch with status: [%s] : %s", jiraIssue.Fields.Status.Category.Name, localBranch)
+            statuses[localBranch] = jiraIssue.Fields.Status.Category
+        }
     }
 
     if len(statuses) == 0 {
@@ -226,6 +256,20 @@ func pairBranchesWithStatuses(input common.Input, client network.Client, issues 
     }
 
     return statuses, nil
+}
+
+func validateJiraIssue(issueKey, email, assignee string) error {
+    at := strings.Index(email, "@")
+    if at == -1 {
+        return fmt.Errorf("validate issue: email %s pulled from Jira issue is either invalid or corrupted", email)
+    }
+
+    username := strings.TrimSpace(email[:at])
+    if assignee != username {
+        return fmt.Errorf("validate issue: %s: assignee provided %s, actual %s", issueKey, assignee, username)
+    }
+
+    return nil
 }
 
 func pairBranchesWithIssues(rawBranches string) (map[string]string, error) {

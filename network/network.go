@@ -1,5 +1,9 @@
 package network
 
+type JiraIssues struct {
+    Issues []JiraIssue `json:"issues"`
+}
+
 type JiraIssue struct {
     Id     string      `json:"id"`
     Key    string      `json:"key"`
@@ -38,4 +42,9 @@ type JiraError struct {
 type Response struct {
     statusCode int
     body       []byte
+}
+
+type JiraIssueBulkRequest struct {
+    Fields    []string `json:"fields"`
+    IssueKeys []string `json:"issueIdsOrKeys"`
 }

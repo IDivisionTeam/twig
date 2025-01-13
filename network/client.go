@@ -2,6 +2,7 @@ package network
 
 import (
     "brcha/log"
+    "bytes"
     "encoding/json"
     "fmt"
     "io"
@@ -28,6 +29,7 @@ type Client interface {
     GetJiraIssueTypes() ([]IssueType, error)
     GetJiraIssue(issueKey string) (*JiraIssue, error)
     GetJiraIssueStatus(issueKey string, hasAssignee bool) (*JiraIssue, error)
+    GetJiraIssueStatusBulk(issueKeys []string, hasAssignee bool) ([]JiraIssue, error)
 }
 
 type networkClient struct {
@@ -46,7 +48,7 @@ func (c *networkClient) GetJiraIssueTypes() ([]IssueType, error) {
     log.Info().Println("sending request <issuetype>")
     path := "issuetype"
 
-    response, err := c.sendRequest(path)
+    response, err := c.sendRequest(http.MethodGet, path, nil)
     if err != nil {
         return nil, fmt.Errorf("get issue types: %w", err)
     }
@@ -66,7 +68,7 @@ func (c *networkClient) GetJiraIssue(issueKey string) (*JiraIssue, error) {
     log.Info().Println("sending request <issue>")
     path := fmt.Sprintf("issue/%s?fields=issuetype,summary", issueKey)
 
-    response, err := c.sendRequest(path)
+    response, err := c.sendRequest(http.MethodGet, path, nil)
     if err != nil {
         return nil, fmt.Errorf("get issue: %w", err)
     }
@@ -84,14 +86,12 @@ func (c *networkClient) GetJiraIssue(issueKey string) (*JiraIssue, error) {
 func (c *networkClient) GetJiraIssueStatus(issueKey string, hasAssignee bool) (*JiraIssue, error) {
     log.Info().Println("sending request <issue-status>")
 
-    var path string
+    path := fmt.Sprintf("issue/%s?fields=status", issueKey)
     if hasAssignee {
-        path = fmt.Sprintf("issue/%s?fields=status,assignee", issueKey)
-    } else {
-        path = fmt.Sprintf("issue/%s?fields=status", issueKey)
+        path = fmt.Sprintf("%s%s", path, ",assignee")
     }
 
-    response, err := c.sendRequest(path)
+    response, err := c.sendRequest(http.MethodGet, path, nil)
     if err != nil {
         return nil, fmt.Errorf("get issue: %w", err)
     }
@@ -106,16 +106,50 @@ func (c *networkClient) GetJiraIssueStatus(issueKey string, hasAssignee bool) (*
     return &jiraIssue, nil
 }
 
-func (c *networkClient) prepareRequest(path string) (*http.Request, error) {
-    url := fmt.Sprintf("https://%s/rest/api/2/%s", c.credentials.host, path)
-    log.Debug().Printf("prepare request: url = %s", url)
+func (c *networkClient) GetJiraIssueStatusBulk(issueKeys []string, hasAssignee bool) ([]JiraIssue, error) {
+    log.Info().Println("sending request <issue-status-bulk>")
 
-    request, err := http.NewRequest("GET", url, nil)
+    fields := []string{"status"}
+    if hasAssignee {
+        fields = append(fields, "assignee")
+    }
+
+    body := JiraIssueBulkRequest{
+        Fields:    fields,
+        IssueKeys: issueKeys,
+    }
+
+    log.Debug().Printf("request <issue-status-bulk>:\n%+v", body)
+
+    encodedBody, _ := json.Marshal(body)
+    response, err := c.sendRequest(http.MethodPost, "issue/bulkfetch", bytes.NewBuffer(encodedBody))
+    if err != nil {
+        return nil, fmt.Errorf("get issues: %w", err)
+    }
+
+    log.Debug().Printf("response <issue-status-bulk>:\n%s", response.body)
+
+    var jiraIssues JiraIssues
+    if err := json.Unmarshal(response.body, &jiraIssues); err != nil {
+        return nil, fmt.Errorf("get issues: (%d) unmarshal: %w", response.statusCode, err)
+    }
+
+    return jiraIssues.Issues, nil
+}
+
+func (c *networkClient) prepareRequest(method, path string, body io.Reader) (*http.Request, error) {
+    url := fmt.Sprintf("https://%s/rest/api/2/%s", c.credentials.host, path)
+    log.Debug().Printf("prepare request %s: url= %s", method, url)
+
+    request, err := http.NewRequest(method, url, body)
     if err != nil {
         return nil, fmt.Errorf("prepare request: %w", err)
     }
 
     addAuthHeader(request, c.credentials)
+    if method == http.MethodPost {
+        request.Header.Set("Accept", "application/json")
+    }
     request.Header.Set("Content-Type", "application/json; charset=UTF-8")
 
     return request, nil
@@ -135,8 +169,8 @@ func addAuthHeader(request *http.Request, credentials *jiraCredentials) {
     request.Header.Add("Authorization", bearer)
 }
 
-func (c *networkClient) sendRequest(path string) (*Response, error) {
-    request, err := c.prepareRequest(path)
+func (c *networkClient) sendRequest(method, path string, body io.Reader) (*Response, error) {
+    request, err := c.prepareRequest(method, path, body)
     if err != nil {
         return nil, fmt.Errorf("send request: %w", err)
     }
@@ -155,7 +189,7 @@ func (c *networkClient) sendRequest(path string) (*Response, error) {
         }
     }(response.Body)
 
-    body, err := io.ReadAll(response.Body)
+    data, err := io.ReadAll(response.Body)
     if err != nil {
         return nil, fmt.Errorf("send request: read response bytes: %w", err)
     }
@@ -164,12 +198,12 @@ func (c *networkClient) sendRequest(path string) (*Response, error) {
     if response.StatusCode == http.StatusOK {
         return &Response{
             statusCode: response.StatusCode,
-            body:       body,
+            body:       data,
         }, nil
     }
 
     var jiraError JiraError
-    if err := json.Unmarshal(body, &jiraError); err != nil {
+    if err := json.Unmarshal(data, &jiraError); err != nil {
         return nil, fmt.Errorf("send request: unmarshal error: %w", err)
     }
 

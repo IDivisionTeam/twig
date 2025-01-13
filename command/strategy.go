@@ -231,7 +231,6 @@ func pairBranchesWithStatuses(input common.Input, client network.Client, issues 
             statuses[localBranch] = jiraIssue.Fields.Status.Category
         }
     } else {
-        statuses := make(map[string]network.IssueStatusCategory)
         jiraIssues := make([]network.JiraIssue, len(issues))
         values := slices.Collect(maps.Values(issues))
         attemptsNeeded := calculateAttempts(size)

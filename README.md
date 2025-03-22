@@ -1,4 +1,5 @@
-# brcha  ![brcha](https://img.shields.io/badge/brcha-v1.2.2-green.svg)
+# brcha  ![brcha](https://img.shields.io/badge/brcha-v1.2.2-green.svg) ![tests](https://github.com/yaroslav-android/brcha/actions/workflows/go.yml/badge.svg)
+
 
 ## Overview
 

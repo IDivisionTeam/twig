@@ -151,15 +151,9 @@ In case you want to experiment with custom branch formatting or extend existing 
 
 ```branch.go
 func BuildName(bt Type, jiraIssue network.JiraIssue, excludePhrases string) string {
-    summary := replacePhrases(*jiraIssue.Fields.Summary, excludePhrases)
-    summary = strings.ToLower(summary)
-    summary = strings.TrimSpace(summary)
-    summary = stripRegex(summary)
-    summary = strings.TrimSuffix(summary, wordSeparator)
-
     ...
 
-    // returns "branchType/jiraIssue.Key_summary"
+    return "branchType/jiraIssue.Key_summary"
 }
 ```
 

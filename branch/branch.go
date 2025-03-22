@@ -22,8 +22,7 @@ func BuildName(bt Type, jiraIssue network.JiraIssue, excludePhrases string) stri
     var buffer strings.Builder
 
     summary := replacePhrases(*jiraIssue.Fields.Summary, excludePhrases)
-    summary = strings.ToLower(summary)
-    summary = strings.TrimSpace(summary)
+    summary = camelToKebab(summary)
     summary = stripRegex(summary)
     summary = strings.TrimSuffix(summary, wordSeparator)
 
@@ -62,6 +61,13 @@ func replacePhrases(in string, rawPhrases string) string {
 
     log.Debug().Printf("replace phrases: transform: %s", phrase)
     return phrase
+}
+
+func camelToKebab(in string) string {
+    re := regexp.MustCompile("([a-z0-9])([A-Z])")
+    kebab := re.ReplaceAllString(in, "${1}"+wordSeparator+"${2}")
+
+    return strings.ToLower(kebab)
 }
 
 func ExtractIssueNameFromBranch(branchName string) (string, error) {

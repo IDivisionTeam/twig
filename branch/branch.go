@@ -24,7 +24,6 @@ func BuildName(bt Type, jiraIssue network.JiraIssue, excludePhrases string) stri
     summary := replacePhrases(*jiraIssue.Fields.Summary, excludePhrases)
     summary = camelToKebab(summary)
     summary = stripRegex(summary)
-    summary = strings.TrimSuffix(summary, wordSeparator)
 
     if bt != NULL {
         buffer.WriteString(branchType)
@@ -39,13 +38,16 @@ func BuildName(bt Type, jiraIssue network.JiraIssue, excludePhrases string) stri
 }
 
 func stripRegex(in string) string {
-    log.Debug().Printf("strip regex: transform: %s", in)
+    phrase := strings.ToLower(in)
+    log.Debug().Printf("strip regex: transform: %s", phrase)
 
     reg, _ := regexp.Compile("[^a-zA-Z0-9]+")
-    result := reg.ReplaceAllString(in, wordSeparator)
+    phrase = reg.ReplaceAllString(phrase, wordSeparator)
+    phrase = strings.TrimPrefix(phrase, wordSeparator)
+    phrase = strings.TrimSuffix(phrase, wordSeparator)
 
-    log.Debug().Printf("strip regex: transform: %s", result)
-    return result
+    log.Debug().Printf("strip regex: transform: %s", phrase)
+    return phrase
 }
 
 func replacePhrases(in string, rawPhrases string) string {

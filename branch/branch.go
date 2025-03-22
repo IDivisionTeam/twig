@@ -57,10 +57,11 @@ func replacePhrases(in string, rawPhrases string) string {
 
     phrase := in
     for _, v := range phrases {
-        re := regexp.MustCompile("(?i)\\[" + v + "\\]")
+        re := regexp.MustCompile("(?i)(\\[" + v + "\\]|\\(" + v + "\\))")
         phrase = re.ReplaceAllString(phrase, "")
     }
 
+    phrase = strings.TrimSpace(phrase)
     log.Debug().Printf("replace phrases: transform: %s", phrase)
     return phrase
 }

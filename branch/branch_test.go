@@ -142,3 +142,53 @@ func TestBuildNameOptimisticCase(t *testing.T) {
         t.Errorf(`BuildName(type, issue, phrases) = %q, want match for %q`, subject, want)
     }
 }
+
+func TestBuildNameAcronym(t *testing.T) {
+    branchType := FIX
+    summary := "[Android] \"MY\" (super)_branchSummary HTTPClient"
+    issue := network.JiraIssue{
+        Id:  "",
+        Key: "TST-101",
+        Fields: network.IssueFields{
+            Type: &network.IssueType{
+                Id:   "",
+                Name: "",
+            },
+            Summary:  &summary,
+            Status:   nil,
+            Assignee: nil,
+        },
+    }
+
+    want := "fix/TST-101_my-super-branch-summary-http-client"
+    subject := BuildName(branchType, issue, phrases)
+
+    if subject != want {
+        t.Errorf(`BuildName(type, issue, phrases) = %q, want match for %q`, subject, want)
+    }
+}
+
+func TestBuildNameNumbersInBetween(t *testing.T) {
+    branchType := FIX
+    summary := "[Android] \"MY\" (super)_branchSummary J2K"
+    issue := network.JiraIssue{
+        Id:  "",
+        Key: "TST-101",
+        Fields: network.IssueFields{
+            Type: &network.IssueType{
+                Id:   "",
+                Name: "",
+            },
+            Summary:  &summary,
+            Status:   nil,
+            Assignee: nil,
+        },
+    }
+
+    want := "fix/TST-101_my-super-branch-summary-j2k"
+    subject := BuildName(branchType, issue, phrases)
+
+    if subject != want {
+        t.Errorf(`BuildName(type, issue, phrases) = %q, want match for %q`, subject, want)
+    }
+}

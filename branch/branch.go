@@ -67,9 +67,15 @@ func replacePhrases(in string, rawPhrases string) string {
 }
 
 func camelToKebab(in string) string {
-    re := regexp.MustCompile("([a-z0-9])([A-Z])")
-    kebab := re.ReplaceAllString(in, "${1}"+wordSeparator+"${2}")
+    log.Debug().Printf("camel2kebab: transform: %s", in)
 
+    re1 := regexp.MustCompile("([A-Z]+)([A-Z][a-z])")
+    kebab := re1.ReplaceAllString(in, "${1}"+wordSeparator+"${2}")
+
+    re2 := regexp.MustCompile("([a-z])([A-Z])")
+    kebab = re2.ReplaceAllString(kebab, "${1}"+wordSeparator+"${2}")
+
+    log.Debug().Printf("camel2kebab: transform: %s", kebab)
     return strings.ToLower(kebab)
 }
 

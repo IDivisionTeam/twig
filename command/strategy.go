@@ -17,6 +17,8 @@ import (
 const (
     requestLimit    = 5
     itemsPerRequest = 100
+
+    doneStatusId = 3
 )
 
 var rate = time.Tick(time.Second / time.Duration(requestLimit))
@@ -173,7 +175,7 @@ func deleteBranchesIfAny(input common.Input, statuses map[string]network.IssueSt
     remote, hasRemote := input.Arguments[common.Remote]
 
     for branchName, status := range statuses {
-        if status.Id == 3 {
+        if status.Id == doneStatusId {
             deleteCommand, err := DeleteLocalBranch(branchName)
             if err != nil {
                 log.Error().Print(deleteCommand)

@@ -12,47 +12,46 @@ import (
 
 const (
     emptyCommandArguments string = `Use "brcha -h" or "brcha -help" for more information.`
-    helpCommandOutput     string = `
-    Usage:
-        brcha [arguments]
+    helpCommandOutput     string = `Usage:
+    brcha [arguments]
 
-    The arguments are:
-        -i <issue-key>
-        -t <branch-type>
-        -clean
-        -r <remote>
-        -assignee <username>
+The arguments are:
+    -i <issue-key>
+    -t <branch-type>
+    -clean
+    -r <remote>
+    -assignee <username>
 
-    Available branch types:
-        build, b: Changes that affect the build system or external dependencies (example scopes: gradle, npm)
-        chore, ch: Routine tasks that don't affect the functionality or user-facing aspects of a project
-        ci: Changes to our CI configuration files and scripts (example scopes: Travis, Circle, BrowserStack, SauceLabs)
-        docs, d: Documentation only changes
-        feat, ft: A new feature
-        fix, fx: A bug fix
-        perf, p: A code change that improves performance
-        refactor, rf: A code change that neither fixes a bug nor adds a feature
-        revert, rv: A code that restors to a previous or default condition
-        style, s: Changes that do not affect the meaning of the code (white-space, formatting, missing semi-colons, etc)
-        test, t: Adding missing tests or correcting existing tests
+Available branch types:
+    build, b: Changes that affect the build system or external dependencies (example scopes: gradle, npm)
+    chore, ch: Routine tasks that don't affect the functionality or user-facing aspects of a project
+    ci: Changes to our CI configuration files and scripts (example scopes: Travis, Circle, BrowserStack, SauceLabs)
+    docs, d: Documentation only changes
+    feat, ft: A new feature
+    fix, fx: A bug fix
+    perf, p: A code change that improves performance
+    refactor, rf: A code change that neither fixes a bug nor adds a feature
+    revert, rv: A code that restors to a previous or default condition
+    style, s: Changes that do not affect the meaning of the code (white-space, formatting, missing semi-colons, etc)
+    test, t: Adding missing tests or correcting existing tests
 
-    Examples:
-        ~% brcha -i XX-111
-        ~% branch created: task/XX-111_jira-issue-name
-        ~%
-        ~% brcha -i XX-111 -t fx
-        ~% branch created: fix/XX-111_jira-issue-name
-        ~%
-        ~% brcha -clean
-        ~% branch deleted: fix/XX-111_jira-issue-name
-        ~%
-        ~% brcha -clean -r origin
-        ~% branch deleted: fix/XX-111_jira-issue-name
-        ~% branch deleted: origin/fix/XX-111_jira-issue-name
-        ~%
-        ~% brcha -clean -r origin -assignee example.user
-        ~% branch deleted: fix/XX-111_jira-issue-name
-        ~% branch deleted: origin/fix/XX-111_jira-issue-name`
+Examples:
+    ~% brcha -i XX-111
+    ~% branch created: task/XX-111_jira-issue-name
+    ~%
+    ~% brcha -i XX-111 -t fx
+    ~% branch created: fix/XX-111_jira-issue-name
+    ~%
+    ~% brcha -clean
+    ~% branch deleted: fix/XX-111_jira-issue-name
+    ~%
+    ~% brcha -clean -r origin
+    ~% branch deleted: fix/XX-111_jira-issue-name
+    ~% branch deleted: origin/fix/XX-111_jira-issue-name
+    ~%
+    ~% brcha -clean -r origin -assignee example.user
+    ~% branch deleted: fix/XX-111_jira-issue-name
+    ~% branch deleted: origin/fix/XX-111_jira-issue-name`
 )
 
 func main() {

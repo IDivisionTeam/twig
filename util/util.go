@@ -11,7 +11,7 @@ var (
     colorsCacheMu sync.Mutex
 )
 
-func WrapInColor(c color.Attribute, v ...any) string {
+func Colorize(c color.Attribute, v ...any) string {
     if !inBetween(c, color.FgBlack, color.FgWhite) {
         return fmt.Sprint(v...)
     }
@@ -19,7 +19,7 @@ func WrapInColor(c color.Attribute, v ...any) string {
     return getCachedColor(c).Sprint(v...)
 }
 
-func WrapInColorf(c color.Attribute, format string, v ...any) string {
+func Colorizef(c color.Attribute, format string, v ...any) string {
     if !inBetween(c, color.FgBlack, color.FgWhite) {
         return fmt.Sprintf(format, v...)
     }
@@ -27,7 +27,7 @@ func WrapInColorf(c color.Attribute, format string, v ...any) string {
     return getCachedColor(c).Sprintf(format, v...)
 }
 
-func WrapInColorln(c color.Attribute, v ...any) string {
+func Colorizeln(c color.Attribute, v ...any) string {
     if !inBetween(c, color.FgBlack, color.FgWhite) {
         return fmt.Sprintln(v...)
     }

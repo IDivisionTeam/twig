@@ -1,7 +1,6 @@
 package log
 
 import (
-    "brcha/build"
     "brcha/util"
     "github.com/fatih/color"
     "log"
@@ -13,89 +12,63 @@ type Recorder interface {
     Println(v ...any)
 }
 
-type DebugRecorder struct {
+type TwigRecorder struct {
+    level  Level
+    logger *log.Logger
+    color  color.Attribute
+}
+
+type TwigExceptionRecorder struct {
+    level  Level
     logger *log.Logger
 }
 
-type InfoRecorder struct {
-    logger *log.Logger
+type noOpTwigRecorder struct{}
+
+func (tr *TwigRecorder) Print(v ...any) {
+    tr.logger.Print(util.Colorize(tr.color, v...))
 }
 
-type WarningRecorder struct {
-    logger *log.Logger
+func (tr *TwigRecorder) Printf(format string, v ...any) {
+    tr.logger.Print(util.Colorizef(tr.color, format, v...))
 }
 
-type ErrorRecorder struct {
-    logger *log.Logger
+func (tr *TwigRecorder) Println(v ...any) {
+    tr.logger.Print(util.Colorizeln(tr.color, v...))
 }
 
-type noOpRecorder struct{}
-
-func (i *InfoRecorder) Print(v ...any) {
-    i.logger.Print(util.WrapInColor(color.FgBlue, v...))
-}
-
-func (i *InfoRecorder) Printf(format string, v ...any) {
-    i.logger.Print(util.WrapInColorf(color.FgBlue, format, v...))
-}
-
-func (i *InfoRecorder) Println(v ...any) {
-    i.logger.Print(util.WrapInColorln(color.FgBlue, v...))
-}
-
-func (i *DebugRecorder) Print(v ...any) {
-    if !build.IsDebug {
-        return
+func (ter *TwigExceptionRecorder) Print(v ...any) {
+    if ter.level == FatalLevel {
+        ter.logger.Fatal(util.Colorize(color.FgRed, v...))
+    } else if ter.level == PanicLevel {
+        ter.logger.Panic(util.Colorize(color.FgRed, v...))
     }
-    i.logger.Print(util.WrapInColor(color.FgGreen, v...))
 }
 
-func (i *DebugRecorder) Printf(format string, v ...any) {
-    if !build.IsDebug {
-        return
+func (ter *TwigExceptionRecorder) Printf(format string, v ...any) {
+    if ter.level == FatalLevel {
+        ter.logger.Fatalf(util.Colorizef(color.FgRed, format, v...))
+    } else if ter.level == PanicLevel {
+        ter.logger.Panicf(util.Colorizef(color.FgRed, format, v...))
     }
-    i.logger.Print(util.WrapInColorf(color.FgGreen, format, v...))
 }
 
-func (i *DebugRecorder) Println(v ...any) {
-    if !build.IsDebug {
-        return
+func (ter *TwigExceptionRecorder) Println(v ...any) {
+    if ter.level == FatalLevel {
+        ter.logger.Fatalln(util.Colorizeln(color.FgRed, v...))
+    } else if ter.level == PanicLevel {
+        ter.logger.Panicln(util.Colorizeln(color.FgRed, v...))
     }
-    i.logger.Print(util.WrapInColorln(color.FgGreen, v...))
 }
 
-func (i *WarningRecorder) Print(v ...any) {
-    i.logger.Print(util.WrapInColor(color.FgYellow, v...))
-}
-
-func (i *WarningRecorder) Printf(format string, v ...any) {
-    i.logger.Print(util.WrapInColorf(color.FgYellow, format, v...))
-}
-
-func (i *WarningRecorder) Println(v ...any) {
-    i.logger.Print(util.WrapInColorln(color.FgYellow, v...))
-}
-
-func (i *ErrorRecorder) Print(v ...any) {
-    i.logger.Print(util.WrapInColor(color.FgRed, v...))
-}
-
-func (i *ErrorRecorder) Printf(format string, v ...any) {
-    i.logger.Print(util.WrapInColorf(color.FgRed, format, v...))
-}
-
-func (i *ErrorRecorder) Println(v ...any) {
-    i.logger.Print(util.WrapInColorln(color.FgRed, v...))
-}
-
-func (i *noOpRecorder) Print(v ...any) {
+func (i *noOpTwigRecorder) Print(v ...any) {
     // no-op
 }
 
-func (i *noOpRecorder) Printf(format string, v ...any) {
+func (i *noOpTwigRecorder) Printf(format string, v ...any) {
     // no-op
 }
 
-func (i *noOpRecorder) Println(v ...any) {
+func (i *noOpTwigRecorder) Println(v ...any) {
     // no-op
 }

@@ -1,6 +1,7 @@
 package log
 
 import (
+    "github.com/fatih/color"
     "log"
     "os"
     "sync"
@@ -13,6 +14,8 @@ const (
     InfoLevel        // InfoLevel is the default logging priority.
     WarnLevel
     ErrorLevel
+    PanicLevel
+    FatalLevel
 )
 
 var currentMinLevel = InfoLevel
@@ -31,42 +34,72 @@ func createRecorders() {
     loggers[InfoLevel] = newInfoRecorder()
     loggers[WarnLevel] = newWarningRecorder()
     loggers[ErrorLevel] = newErrorRecorder()
+    loggers[PanicLevel] = newPanicRecorder()
+    loggers[FatalLevel] = newFatalRecorder()
 }
 
 func newDebugRecorder() Recorder {
     if currentMinLevel >= DebugLevel {
-        return &DebugRecorder{
-            logger: log.New(os.Stdout, "DEBUG: ", log.Lmsgprefix),
+        return &TwigRecorder{
+            level:  DebugLevel,
+            logger: log.New(os.Stdout, "", log.Lmsgprefix),
+            color:  color.FgGreen,
         }
     }
-    return &noOpRecorder{}
+    return &noOpTwigRecorder{}
 }
 
 func newInfoRecorder() Recorder {
     if currentMinLevel >= InfoLevel {
-        return &InfoRecorder{
-            logger: log.New(os.Stdout, "INFO: ", log.Lmsgprefix),
+        return &TwigRecorder{
+            level:  InfoLevel,
+            logger: log.New(os.Stdout, "", log.Lmsgprefix),
+            color:  color.FgBlue,
         }
     }
-    return &noOpRecorder{}
+    return &noOpTwigRecorder{}
 }
 
 func newWarningRecorder() Recorder {
     if currentMinLevel >= WarnLevel {
-        return &WarningRecorder{
-            logger: log.New(os.Stdout, "WARNING: ", log.Lmsgprefix),
+        return &TwigRecorder{
+            level:  WarnLevel,
+            logger: log.New(os.Stdout, "", log.Lmsgprefix),
+            color:  color.FgYellow,
         }
     }
-    return &noOpRecorder{}
+    return &noOpTwigRecorder{}
 }
 
 func newErrorRecorder() Recorder {
     if currentMinLevel >= ErrorLevel {
-        return &ErrorRecorder{
-            logger: log.New(os.Stderr, "ERROR: ", log.Lmsgprefix),
+        return &TwigRecorder{
+            level:  ErrorLevel,
+            logger: log.New(os.Stderr, "", log.Lmsgprefix),
+            color:  color.FgRed,
         }
     }
-    return &noOpRecorder{}
+    return &noOpTwigRecorder{}
+}
+
+func newPanicRecorder() Recorder {
+    if currentMinLevel >= PanicLevel {
+        return &TwigExceptionRecorder{
+            level:  PanicLevel,
+            logger: log.New(os.Stderr, "", log.Lmsgprefix),
+        }
+    }
+    return &noOpTwigRecorder{}
+}
+
+func newFatalRecorder() Recorder {
+    if currentMinLevel >= FatalLevel {
+        return &TwigExceptionRecorder{
+            level:  FatalLevel,
+            logger: log.New(os.Stderr, "", log.Lmsgprefix),
+        }
+    }
+    return &noOpTwigRecorder{}
 }
 
 func Print(l Level, v ...any) {
@@ -102,4 +135,14 @@ func Warn() Recorder {
 func Error() Recorder {
     once.Do(createRecorders)
     return loggers[ErrorLevel]
+}
+
+func Panic() Recorder {
+    once.Do(createRecorders)
+    return loggers[PanicLevel]
+}
+
+func Fatal() Recorder {
+    once.Do(createRecorders)
+    return loggers[FatalLevel]
 }

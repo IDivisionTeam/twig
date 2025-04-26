@@ -1,6 +1,5 @@
 # twig ![tests](https://github.com/yaroslav-android/twig/actions/workflows/go.yml/badge.svg)
 
-
 ## Overview
 
 Streamline your workflow with a CLI tool that integrates Git and Jira. Quickly create, name, and delete branches using the Issue Key, ensuring consistency and efficiency in branch management.
@@ -15,23 +14,25 @@ Streamline your workflow with a CLI tool that integrates Git and Jira. Quickly c
 
 ## Installation
 
-1. Configure your Jira API settings in the `.env` file.
+1. Configure your Jira API settings in the `twig.config` file.
 
-```.env
+```twig.config
 project.host=example.atlassian.net
 project.email=example.user@example.com
 project.token=api_token
 ```
->*NOTE: for* `Bearer` *auth leave* `project.email` *field empty!*
 
-2. Define mappings for your Jira issue types in the configuration the `.env` file. Use zero if you want to ignore a specific type.
+> *NOTE: for* `Bearer` *auth leave* `project.email` *field empty!*
 
-```.env
+2. Define mappings for your Jira issue types in the configuration the `twig.config` file. Use zero if you want to ignore a specific type.
+
+```twig.config
 branch.mapping=build:0;chore:0;ci:0;docs:0;feat:0;fix:0;pref:0;refactor:0;revert:0;style:0;test:0
 ```
 
 If you have multiple IDs of the same type, separate them with a comma (`,`).
-```.env
+
+```twig.config
 branch.mapping=build:10001,10002,10003;...
 ```
 
@@ -45,7 +46,9 @@ curl \
     -H "Content-Type: application/json" \
     https://{host}/rest/api/2/issuetype
 ```
+
 or
+
 ```terminal
 curl \
     -D- \
@@ -55,21 +58,24 @@ curl \
     https://{host}/rest/api/2/issuetype
 ```
 
-3. Specify the branch that will serve as the base when checking out before deleting local branches. This ensures consistency and avoids issues during cleanup operations.
-```.env
+3. Specify the `branch.default` which will serve as the base when checking out before deleting local branches. Specify the `branch.origin` to be able to delete branches alongside their corresponding local branches. This ensures consistency and avoids issues during cleanup operations.
+
+```twig.config
 branch.default=develop
+branch.origin=origin
 ```
 
 4. Specify any exclusion phrases to be removed from the branch name, if applicable.
-```.env
+
+```twig.config
 branch.exclude=front,mobile,android,ios,be,web,spike,eval
 ```
 
-5. Copy `.env` file into `~/.config/twig/` folder.
+5. Copy `twig.config` file into `~/.config/twig/` folder.
 
 ```terminal
 mkdir -p ~/.config/twig/ && \
-cp .env ~/.config/twig/
+cp twig.config ~/.config/twig/
 ```
 
 6. Compile the tool into an executable file or [download compiled executable](https://github.com/yaroslav-android/twig/releases).
@@ -78,7 +84,7 @@ cp .env ~/.config/twig/
 go build
 ```
 
-7. Move the executable  into `/usr/local/bin` for easy global access.
+7. Move the executable into `/usr/local/bin` for easy global access.
 
 ```terminal
 mv twig /usr/local/bin
@@ -87,33 +93,37 @@ mv twig /usr/local/bin
 ## Usage
 
 ```terminal
-twig [arguments]
+twig [-h | --help] [-v | --version] [--config]
 ```
 
 ## Commands
-> _Note: Remote branches can only be deleted if a corresponding local branch exists._
 
-`help` - Displays help information for all available commands and options in the CLI tool, providing usage instructions
-and examples. Use this command to understand how to use the tool effectively.
+```> twig-help
+twig help <command>
+```
+
+Displays help information for all available commands and options in the CLI tool providing usage instructions and examples. Use this command to understand how to use the tool effectively.
+
+**Examples**
 
 ```terminal
-btwig -help
+twig help create
 ```
 
-`i <issue-key>` - The branch prefix after branch type. Uses Jira Issue Key.
+<br/>
 
-``` terminal
-twig -i XXX-00
+```> twig-create
+twig create <issue> [-t | --type]
 ```
 
-`t <branch-type>` - (optional) Overrides the type of branch to create, allowing the branch name ignore mapped Jira
-issue types. Branches are named according to the [standard](https://www.conventionalcommits.org/en/v1.0.0/).
+Creates the branch using Jira Issue Key as prefix after branch type.
 
-``` terminal
-twig -i XXX-00 -t ci
-```
+**Options**
 
-Available branch types
+`-t` <br/>
+`--type` - (optional) Overrides the type of branch to create, allowing the branch name ignore mapped Jira issue types. Branches are named according to the [standard](https://www.conventionalcommits.org/en/v1.0.0/).
+
+**Available branch types**
 
 - `build`, `b` - Changes that affect the build system or external dependencies (example scopes: gradle, npm)
 - `chore`, `ch` - Routine tasks that don't affect the functionality or user-facing aspects of a project
@@ -127,23 +137,34 @@ Available branch types
 - `style`, `s` - Changes that do not affect the meaning of the code (white-space, formatting, missing semi-colons, etc)
 - `test`, `t` - Adding missing tests or correcting existing tests
 
-`clean` - Deletes all local branches which have Jira tickets in 'Done' state.
+**Examples**
 
 ```terminal
-twig -clean
+twig create XX-111
 ```
 
-`r <remote>` - (optional) Allows the deletion of remote branches alongside their corresponding local branches.
+<br/>
 
+```> twig-clean
+twig clean local
+twig clean all [-a | --assignee]
+```
+
+Deletes branches which have Jira tickets in 'Done' state.<br/>
+Note: Remote branches can only be deleted if a corresponding local branch exists.
+
+`-a` <br/>
+`--assignee` - (optional) Specifies the username (from the email) to verify that the Jira issue is assigned to you before permitting remote branch deletion. Use your Jira email, which might match `project.email`, e.g., `example.user@example.com`.
+
+**Examples**
 ```terminal
-twig -clean -r origin
+twig clean local
 ```
-
-`assignee <username>` - (optional) Specifies the username (from the email) to verify that the Jira issue is assigned to you before permitting remote branch deletion. Use your Jira email, which might match `project.email`, e.g., `example.user@example.com`.
-
 ```terminal
-twig -clean -r origin -assignee example.user
+twig clean all -a example.user
 ```
+
+<br/>
 
 ## Configuration
 
@@ -157,31 +178,31 @@ func BuildName(bt Type, jiraIssue network.JiraIssue, excludePhrases string) stri
 }
 ```
 
-## Examples
+## More Examples
 
 ```terminal
-~% twig -i XX-111
+~% twig create XX-111
 ~% branch created: task/XX-111_jira-issue-name
 ```
 
 ```terminal
-~% twig -i XX-111 -t fx
+~% twig create XX-111 -t fx
 ~% branch created: fix/XX-111_jira-issue-name
 ```
 
 ```terminal
-~% twig -clean
+~% twig clean local
 ~% branch deleted: fix/XX-111_jira-issue-name
 ```
 
 ```terminal
-~% twig -clean -r origin
+~% twig clean all
 ~% branch deleted: fix/XX-111_jira-issue-name
 ~% remote branch deleted: origin/fix/XX-111_jira-issue-name
 ```
 
 ```terminal
-~% twig -clean -r origin -assignee example.user
+~% twig clean all --assignee example.user
 ~% branch deleted: fix/XX-111_jira-issue-name
 ~% remote branch deleted: origin/fix/XX-111_jira-issue-name
 ```

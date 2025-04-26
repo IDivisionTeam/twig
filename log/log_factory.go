@@ -6,81 +6,100 @@ import (
     "sync"
 )
 
-type Type int
+type Level int
 
 const (
-    INFO Type = iota
-    DEBUG
-    WARN
-    ERROR
+    DebugLevel Level = iota - 1
+    InfoLevel        // InfoLevel is the default logging priority.
+    WarnLevel
+    ErrorLevel
 )
 
+var currentMinLevel = InfoLevel
+
+func SetLevel(l Level) {
+    currentMinLevel = l
+}
+
 var (
-    loggers = make(map[Type]Recorder)
+    loggers = make(map[Level]Recorder)
     once    sync.Once
 )
 
 func createRecorders() {
-    loggers[INFO] = newInfoRecorder()
-    loggers[DEBUG] = newDebugRecorder()
-    loggers[WARN] = newWarningRecorder()
-    loggers[ERROR] = newErrorRecorder()
+    loggers[DebugLevel] = newDebugRecorder()
+    loggers[InfoLevel] = newInfoRecorder()
+    loggers[WarnLevel] = newWarningRecorder()
+    loggers[ErrorLevel] = newErrorRecorder()
+}
+
+func newDebugRecorder() Recorder {
+    if currentMinLevel >= DebugLevel {
+        return &DebugRecorder{
+            logger: log.New(os.Stdout, "DEBUG: ", log.Lmsgprefix),
+        }
+    }
+    return &noOpRecorder{}
 }
 
 func newInfoRecorder() Recorder {
-    return &InfoRecorder{
-        logger: log.New(os.Stdout, "INFO: ", log.Lmsgprefix|log.LstdFlags),
+    if currentMinLevel >= InfoLevel {
+        return &InfoRecorder{
+            logger: log.New(os.Stdout, "INFO: ", log.Lmsgprefix),
+        }
     }
-}
-func newDebugRecorder() Recorder {
-    return &DebugRecorder{
-        logger: log.New(os.Stdout, "DEBUG: ", log.Lmsgprefix|log.LstdFlags),
-    }
+    return &noOpRecorder{}
 }
 
 func newWarningRecorder() Recorder {
-    return &WarningRecorder{
-        logger: log.New(os.Stdout, "WARNING: ", log.Lmsgprefix|log.LstdFlags),
+    if currentMinLevel >= WarnLevel {
+        return &WarningRecorder{
+            logger: log.New(os.Stdout, "WARNING: ", log.Lmsgprefix),
+        }
     }
+    return &noOpRecorder{}
 }
 
 func newErrorRecorder() Recorder {
-    return &ErrorRecorder{
-        logger: log.New(os.Stderr, "ERROR: ", log.Lmsgprefix|log.LstdFlags),
+    if currentMinLevel >= ErrorLevel {
+        return &ErrorRecorder{
+            logger: log.New(os.Stderr, "ERROR: ", log.Lmsgprefix),
+        }
     }
+    return &noOpRecorder{}
 }
 
-func Print(lt Type, v ...any) {
+func Print(l Level, v ...any) {
     once.Do(createRecorders)
-    loggers[lt].Print(v...)
+    loggers[l].Print(v...)
 }
 
-func Printf(lt Type, format string, v ...any) {
+func Printf(l Level, format string, v ...any) {
     once.Do(createRecorders)
-    loggers[lt].Printf(format, v...)
+    loggers[l].Printf(format, v...)
 }
 
-func Println(lt Type, v ...any) {
+func Println(l Level, v ...any) {
     once.Do(createRecorders)
-    loggers[lt].Println(v...)
-}
-
-func Info() Recorder {
-    once.Do(createRecorders)
-    return loggers[INFO]
+    loggers[l].Println(v...)
 }
 
 func Debug() Recorder {
     once.Do(createRecorders)
-    return loggers[DEBUG]
+    return loggers[DebugLevel]
+}
+
+func Info() Recorder {
+    once.Do(createRecorders)
+    return loggers[InfoLevel]
 }
 
 func Warn() Recorder {
     once.Do(createRecorders)
-    return loggers[WARN]
+    return loggers[WarnLevel]
 }
 
 func Error() Recorder {
     once.Do(createRecorders)
-    return loggers[ERROR]
+    return loggers[ErrorLevel]
 }

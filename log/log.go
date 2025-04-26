@@ -13,11 +13,11 @@ type Recorder interface {
     Println(v ...any)
 }
 
-type InfoRecorder struct {
+type DebugRecorder struct {
     logger *log.Logger
 }
 
-type DebugRecorder struct {
+type InfoRecorder struct {
     logger *log.Logger
 }
 
@@ -28,6 +28,8 @@ type WarningRecorder struct {
 type ErrorRecorder struct {
     logger *log.Logger
 }
+
+type noOpRecorder struct{}
 
 func (i *InfoRecorder) Print(v ...any) {
     i.logger.Print(util.WrapInColor(color.FgBlue, v...))
@@ -84,4 +86,16 @@ func (i *ErrorRecorder) Printf(format string, v ...any) {
 
 func (i *ErrorRecorder) Println(v ...any) {
     i.logger.Print(util.WrapInColorln(color.FgRed, v...))
+}
+
+func (i *noOpRecorder) Print(v ...any) {
+    // no-op
+}
+
+func (i *noOpRecorder) Printf(format string, v ...any) {
+    // no-op
+}
+
+func (i *noOpRecorder) Println(v ...any) {
+    // no-op
 }

@@ -6,12 +6,24 @@ import (
     "fmt"
     "regexp"
     "strings"
+    "sync"
 )
 
 const (
     branchTypeSeparator string = "/"
     issueTypeSeparator  string = "_"
     wordSeparator       string = "-"
+)
+
+var (
+    stripRegx           = regexp.MustCompile("[^a-zA-Z0-9]+")
+    firstPassKebabRegx  = regexp.MustCompile("([A-Z]+)([A-Z][a-z])")
+    secondPassKebabRegx = regexp.MustCompile("([a-z])([A-Z])")
+
+    issueRegx = regexp.MustCompile(`[A-Z]+-\d+_`) // looking for XXXX-0000_
+
+    excludePhrases         []*regexp.Regexp
+    initExcludePhrasesOnce sync.Once
 )
 
 func BuildName(bt Type, jiraIssue network.JiraIssue, excludePhrases string) string {
@@ -41,8 +53,7 @@ func stripRegex(in string) string {
     phrase := strings.ToLower(in)
     log.Debug().Printf("strip regex: transform: %s", phrase)
 
-    reg, _ := regexp.Compile("[^a-zA-Z0-9]+")
-    phrase = reg.ReplaceAllString(phrase, wordSeparator)
+    phrase = stripRegx.ReplaceAllString(phrase, wordSeparator)
     phrase = strings.TrimPrefix(phrase, wordSeparator)
     phrase = strings.TrimSuffix(phrase, wordSeparator)
 
@@ -53,11 +64,10 @@ func stripRegex(in string) string {
 func replacePhrases(in string, rawPhrases string) string {
     log.Debug().Printf("replace phrases: transform: %s", in)
 
-    phrases := strings.Split(rawPhrases, ",")
-
     phrase := in
-    for _, v := range phrases {
-        re := regexp.MustCompile("(?i)(\\[" + v + "\\]|\\(" + v + "\\))")
+    initExcludePhrasesOnce.Do(prepareExcludeRegx(rawPhrases))
+
+    for _, re := range excludePhrases {
         phrase = re.ReplaceAllString(phrase, "")
     }
 
@@ -66,14 +76,22 @@ func replacePhrases(in string, rawPhrases string) string {
     return phrase
 }
 
+func prepareExcludeRegx(rawExcludes string) func() {
+    return func() {
+        excludes := strings.Split(rawExcludes, ",")
+
+        for _, v := range excludes {
+            re := regexp.MustCompile("(?i)(\\[" + v + "\\]|\\(" + v + "\\))")
+            excludePhrases = append(excludePhrases, re)
+        }
+    }
+}
+
 func camelToKebab(in string) string {
     log.Debug().Printf("camel2kebab: transform: %s", in)
 
-    re1 := regexp.MustCompile("([A-Z]+)([A-Z][a-z])")
-    kebab := re1.ReplaceAllString(in, "${1}"+wordSeparator+"${2}")
-
-    re2 := regexp.MustCompile("([a-z])([A-Z])")
-    kebab = re2.ReplaceAllString(kebab, "${1}"+wordSeparator+"${2}")
+    kebab := firstPassKebabRegx.ReplaceAllString(in, "${1}"+wordSeparator+"${2}")
+    kebab = secondPassKebabRegx.ReplaceAllString(kebab, "${1}"+wordSeparator+"${2}")
 
     log.Debug().Printf("camel2kebab: transform: %s", kebab)
     return strings.ToLower(kebab)
@@ -81,9 +99,8 @@ func camelToKebab(in string) string {
 
 func ExtractIssueNameFromBranch(branchName string) (string, error) {
     log.Debug().Printf("extract phrase: issue: %s", branchName)
-    re := regexp.MustCompile(`[A-Z]+-\d+_`) // looking for XXXX-0000_
 
-    match := re.FindString(branchName)
+    match := issueRegx.FindString(branchName)
     match = strings.TrimSpace(match)
     match = strings.TrimSuffix(match, issueTypeSeparator)
 

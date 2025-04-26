@@ -47,17 +47,17 @@ func (ter *TwigExceptionRecorder) Print(v ...any) {
 
 func (ter *TwigExceptionRecorder) Printf(format string, v ...any) {
     if ter.level == FatalLevel {
-        ter.logger.Fatalf(util.Colorizef(color.FgRed, format, v...))
+        ter.logger.Fatal(util.Colorizef(color.FgRed, format, v...))
     } else if ter.level == PanicLevel {
-        ter.logger.Panicf(util.Colorizef(color.FgRed, format, v...))
+        ter.logger.Panic(util.Colorizef(color.FgRed, format, v...))
     }
 }
 
 func (ter *TwigExceptionRecorder) Println(v ...any) {
     if ter.level == FatalLevel {
-        ter.logger.Fatalln(util.Colorizeln(color.FgRed, v...))
+        ter.logger.Fatal(util.Colorizeln(color.FgRed, v...))
     } else if ter.level == PanicLevel {
-        ter.logger.Panicln(util.Colorizeln(color.FgRed, v...))
+        ter.logger.Panic(util.Colorizeln(color.FgRed, v...))
     }
 }
 

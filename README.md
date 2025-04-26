@@ -18,21 +18,21 @@ Streamline your workflow with a CLI tool that integrates Git and Jira. Quickly c
 1. Configure your Jira API settings in the `.env` file.
 
 ```.env
-BRCHA_HOST=example.atlassian.net
-BRCHA_EMAIL=example.user@example.com
-BRCHA_TOKEN=api_token
+project.host=example.atlassian.net
+project.email=example.user@example.com
+project.token=api_token
 ```
->*NOTE: for* `Bearer` *auth leave* `BRCHA_EMAIL` *field empty!*
+>*NOTE: for* `Bearer` *auth leave* `project.email` *field empty!*
 
 2. Define mappings for your Jira issue types in the configuration the `.env` file. Use zero if you want to ignore a specific type.
 
 ```.env
-BRCHA_TYPE_MAPPING=build:0;chore:0;ci:0;docs:0;feat:0;fix:0;pref:0;refactor:0;revert:0;style:0;test:0
+branch.mapping=build:0;chore:0;ci:0;docs:0;feat:0;fix:0;pref:0;refactor:0;revert:0;style:0;test:0
 ```
 
 If you have multiple IDs of the same type, separate them with a comma (`,`).
 ```.env
-BRCHA_TYPE_MAPPING=build:10001,10002,10003;...
+branch.mapping=build:10001,10002,10003;...
 ```
 
 You can `curl` available `issuetype`s from Jira.
@@ -57,12 +57,12 @@ curl \
 
 3. Specify the branch that will serve as the base when checking out before deleting local branches. This ensures consistency and avoids issues during cleanup operations.
 ```.env
-BRCHA_DEV_BRANCH_NAME=develop
+branch.default=develop
 ```
 
 4. Specify any exclusion phrases to be removed from the branch name, if applicable.
 ```.env
-BRCHA_EXCLUDE_PHRASES=front,mobile,android,ios,be,web,spike,eval
+branch.exclude=front,mobile,android,ios,be,web,spike,eval
 ```
 
 5. Copy `.env` file into `~/.config/brcha/` folder.
@@ -139,7 +139,7 @@ brcha -clean
 brcha -clean -r origin
 ```
 
-`assignee <username>` - (optional) Specifies the username (from the email) to verify that the Jira issue is assigned to you before permitting remote branch deletion. Use your Jira email, which might match `BRCHA_EMAIL`, e.g., `example.user@example.com`.
+`assignee <username>` - (optional) Specifies the username (from the email) to verify that the Jira issue is assigned to you before permitting remote branch deletion. Use your Jira email, which might match `project.email`, e.g., `example.user@example.com`.
 
 ```terminal
 brcha -clean -r origin -assignee example.user

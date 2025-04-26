@@ -1,7 +1,6 @@
 package network
 
 import (
-    "brcha/log"
     "bytes"
     "encoding/json"
     "fmt"
@@ -9,6 +8,7 @@ import (
     "net/http"
     "os"
     "strings"
+    "twig/log"
 )
 
 type jiraCredentials struct {

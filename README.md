@@ -1,4 +1,4 @@
-# brcha ![tests](https://github.com/yaroslav-android/brcha/actions/workflows/go.yml/badge.svg)
+# twig ![tests](https://github.com/yaroslav-android/twig/actions/workflows/go.yml/badge.svg)
 
 
 ## Overview
@@ -65,14 +65,14 @@ branch.default=develop
 branch.exclude=front,mobile,android,ios,be,web,spike,eval
 ```
 
-5. Copy `.env` file into `~/.config/brcha/` folder.
+5. Copy `.env` file into `~/.config/twig/` folder.
 
 ```terminal
-mkdir -p ~/.config/brcha/ && \
-cp .env ~/.config/brcha/
+mkdir -p ~/.config/twig/ && \
+cp .env ~/.config/twig/
 ```
 
-6. Compile the tool into an executable file or [download compiled executable](https://github.com/yaroslav-android/brcha/releases).
+6. Compile the tool into an executable file or [download compiled executable](https://github.com/yaroslav-android/twig/releases).
 
 ```terminal
 go build
@@ -81,13 +81,13 @@ go build
 7. Move the executable  into `/usr/local/bin` for easy global access.
 
 ```terminal
-mv brcha /usr/local/bin
+mv twig /usr/local/bin
 ```
 
 ## Usage
 
 ```terminal
-brcha [arguments]
+twig [arguments]
 ```
 
 ## Commands
@@ -97,20 +97,20 @@ brcha [arguments]
 and examples. Use this command to understand how to use the tool effectively.
 
 ```terminal
-brcha -help
+btwig -help
 ```
 
 `i <issue-key>` - The branch prefix after branch type. Uses Jira Issue Key.
 
 ``` terminal
-brcha -i XXX-00
+twig -i XXX-00
 ```
 
 `t <branch-type>` - (optional) Overrides the type of branch to create, allowing the branch name ignore mapped Jira
 issue types. Branches are named according to the [standard](https://www.conventionalcommits.org/en/v1.0.0/).
 
 ``` terminal
-brcha -i XXX-00 -t ci
+twig -i XXX-00 -t ci
 ```
 
 Available branch types
@@ -130,19 +130,19 @@ Available branch types
 `clean` - Deletes all local branches which have Jira tickets in 'Done' state.
 
 ```terminal
-brcha -clean
+twig -clean
 ```
 
 `r <remote>` - (optional) Allows the deletion of remote branches alongside their corresponding local branches.
 
 ```terminal
-brcha -clean -r origin
+twig -clean -r origin
 ```
 
 `assignee <username>` - (optional) Specifies the username (from the email) to verify that the Jira issue is assigned to you before permitting remote branch deletion. Use your Jira email, which might match `project.email`, e.g., `example.user@example.com`.
 
 ```terminal
-brcha -clean -r origin -assignee example.user
+twig -clean -r origin -assignee example.user
 ```
 
 ## Configuration
@@ -160,28 +160,28 @@ func BuildName(bt Type, jiraIssue network.JiraIssue, excludePhrases string) stri
 ## Examples
 
 ```terminal
-~% brcha -i XX-111
+~% twig -i XX-111
 ~% branch created: task/XX-111_jira-issue-name
 ```
 
 ```terminal
-~% brcha -i XX-111 -t fx
+~% twig -i XX-111 -t fx
 ~% branch created: fix/XX-111_jira-issue-name
 ```
 
 ```terminal
-~% brcha -clean
+~% twig -clean
 ~% branch deleted: fix/XX-111_jira-issue-name
 ```
 
 ```terminal
-~% brcha -clean -r origin
+~% twig -clean -r origin
 ~% branch deleted: fix/XX-111_jira-issue-name
 ~% remote branch deleted: origin/fix/XX-111_jira-issue-name
 ```
 
 ```terminal
-~% brcha -clean -r origin -assignee example.user
+~% twig -clean -r origin -assignee example.user
 ~% branch deleted: fix/XX-111_jira-issue-name
 ~% remote branch deleted: origin/fix/XX-111_jira-issue-name
 ```

@@ -1,8 +1,8 @@
 package issue
 
 import (
-    "brcha/log"
     "strings"
+    "twig/log"
 )
 
 func ParseIssueMapping(raw string) map[string]string {

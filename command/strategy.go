@@ -1,10 +1,6 @@
 package command
 
 import (
-    "brcha/branch"
-    "brcha/common"
-    "brcha/log"
-    "brcha/network"
     "fmt"
     "maps"
     "os"
@@ -12,6 +8,10 @@ import (
     "strings"
     "sync"
     "time"
+    "twig/branch"
+    "twig/common"
+    "twig/log"
+    "twig/network"
 )
 
 const (
@@ -23,7 +23,7 @@ const (
 
 var rate = time.Tick(time.Second / time.Duration(requestLimit))
 
-type BrchaCommand interface {
+type TwigCommand interface {
     Execute() error
 }
 
@@ -32,7 +32,7 @@ type createLocalBranchStrategy struct {
     input  *common.Input
 }
 
-func NewCreateLocalBranchCommand(client network.Client, input *common.Input) BrchaCommand {
+func NewCreateLocalBranchCommand(client network.Client, input *common.Input) TwigCommand {
     return &createLocalBranchStrategy{
         client: client,
         input:  input,
@@ -119,7 +119,7 @@ type deleteLocalBranchStrategy struct {
     input  *common.Input
 }
 
-func NewDeleteLocalBranchCommand(client network.Client, input *common.Input) BrchaCommand {
+func NewDeleteLocalBranchCommand(client network.Client, input *common.Input) TwigCommand {
     return &deleteLocalBranchStrategy{
         client: client,
         input:  input,

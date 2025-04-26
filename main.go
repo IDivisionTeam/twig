@@ -1,19 +1,19 @@
 package main
 
 import (
-    "brcha/command"
-    "brcha/common"
-    "brcha/log"
-    "brcha/network"
     "flag"
     "net/http"
     "os"
+    "twig/command"
+    "twig/common"
+    "twig/log"
+    "twig/network"
 )
 
 const (
-    emptyCommandArguments string = `Use "brcha -h" or "brcha -help" for more information.`
+    emptyCommandArguments string = `Use "twig -h" or "twig -help" for more information.`
     helpCommandOutput     string = `Usage:
-    brcha [arguments]
+    twig [arguments]
 
 The arguments are:
     -i <issue-key>
@@ -36,20 +36,20 @@ Available branch types:
     test, t: Adding missing tests or correcting existing tests
 
 Examples:
-    ~% brcha -i XX-111
+    ~% twig -i XX-111
     ~% branch created: task/XX-111_jira-issue-name
     ~%
-    ~% brcha -i XX-111 -t fx
+    ~% twig -i XX-111 -t fx
     ~% branch created: fix/XX-111_jira-issue-name
     ~%
-    ~% brcha -clean
+    ~% twig -clean
     ~% branch deleted: fix/XX-111_jira-issue-name
     ~%
-    ~% brcha -clean -r origin
+    ~% twig -clean -r origin
     ~% branch deleted: fix/XX-111_jira-issue-name
     ~% branch deleted: origin/fix/XX-111_jira-issue-name
     ~%
-    ~% brcha -clean -r origin -assignee example.user
+    ~% twig -clean -r origin -assignee example.user
     ~% branch deleted: fix/XX-111_jira-issue-name
     ~% branch deleted: origin/fix/XX-111_jira-issue-name`
 )
@@ -70,7 +70,7 @@ func main() {
     httpClient := &http.Client{}
     client := network.NewClient(httpClient)
 
-    var cmd command.BrchaCommand
+    var cmd command.TwigCommand
     if input.HasFlag(common.CleanFlag) {
         cmd = command.NewDeleteLocalBranchCommand(client, input)
     } else {

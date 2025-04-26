@@ -1,11 +1,11 @@
 package common
 
 import (
-    "brcha/branch"
-    "brcha/issue"
-    "brcha/log"
-    "brcha/network"
     "fmt"
+    "twig/branch"
+    "twig/issue"
+    "twig/log"
+    "twig/network"
 )
 
 func ConvertUserInputToBranchType(input string) (branch.Type, error) {

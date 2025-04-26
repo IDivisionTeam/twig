@@ -1,12 +1,12 @@
 package command
 
 import (
-    "brcha/log"
     "fmt"
     "os"
     "os/exec"
     "path/filepath"
     "slices"
+    "twig/log"
 
     "github.com/joho/godotenv"
 )
@@ -18,7 +18,7 @@ func ReadEnvVariables() error {
     }
     log.Debug().Printf("read env: home dir = %s", homeDir)
 
-    envPath := filepath.Join(homeDir, ".config", "brcha", ".env")
+    envPath := filepath.Join(homeDir, ".config", "twig", ".env")
     log.Debug().Printf("read env: env path = %s", envPath)
 
     err = godotenv.Load(envPath)

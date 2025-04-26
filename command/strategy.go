@@ -83,14 +83,14 @@ func (clb *createLocalBranchStrategy) Execute() error {
 }
 
 func parseBranchType(input common.Input) (branch.Type, error) {
-    brahchType, ok := input.Arguments[common.BranchType]
+    branchType, ok := input.Arguments[common.BranchType]
     if !ok {
         log.Debug().Println("get issue type: no user override, take Issue types from Jira")
         return branch.NULL, nil
     }
 
-    log.Debug().Printf("get issue type: user override: %s", brahchType)
-    return common.ConvertUserInputToBranchType(brahchType)
+    log.Debug().Printf("get issue type: user override: %s", branchType)
+    return common.ConvertUserInputToBranchType(branchType)
 }
 
 func convertIssueTypeToBranchType(jiraIssueType network.IssueType, networkTypes []network.IssueType) (branch.Type, error) {

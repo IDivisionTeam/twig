@@ -17,6 +17,7 @@ const (
 
 const EmptyFlag Flag = 0
 
+// Deprecated: In favor of new setup with Cobra.
 type Input struct {
     Flags     Flag
     Arguments map[InputType]string

@@ -1,39 +1,12 @@
 package command
 
 import (
-    "errors"
     "fmt"
-    "github.com/spf13/viper"
     "os/exec"
     "slices"
     "twig/log"
 
-    "github.com/mitchellh/go-homedir"
 )
-
-func ReadEnvVariables() error {
-    home, err := homedir.Dir()
-    if err != nil {
-        log.Fatal().Println(err)
-    }
-
-    viper.AddConfigPath(home + "/.config/twig/")
-    viper.SetConfigName(".env")
-    viper.SetConfigType("env")
-
-    if err = viper.ReadInConfig(); err != nil {
-        var configFileNotFoundError viper.ConfigFileNotFoundError
-
-        if errors.As(err, &configFileNotFoundError) {
-            return fmt.Errorf("config file not found: %w", err)
-        } else {
-            return fmt.Errorf("unable to read config file: %w", err)
-        }
-    }
-
-    log.Info().Println("config loaded")
-    return nil
-}
 
 func HasBranch(branchName string) bool {
     err := exec.Command("git", "branch", "--contains", branchName).Run()

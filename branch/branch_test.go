@@ -5,7 +5,7 @@ import (
     "twig/network"
 )
 
-// Update if not matching .env file.
+// Update if not matching twig.config file.
 const phrases = "front,mobile,android,ios,be,web,spike,eval"
 
 func TestReplacePhrasesOptimisticCase(t *testing.T) {

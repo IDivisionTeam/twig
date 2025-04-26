@@ -2,8 +2,8 @@ package command
 
 import (
     "fmt"
+    "github.com/spf13/viper"
     "maps"
-    "os"
     "slices"
     "strings"
     "sync"
@@ -67,7 +67,7 @@ func (clb *createLocalBranchStrategy) Execute() error {
         }
     }
 
-    excludePhrases := os.Getenv("branch.exclude")
+    excludePhrases := viper.GetString("branch.exclude")
     if excludePhrases == "" {
         log.Warn().Println("branch.exclude is not set")
     }
@@ -96,7 +96,7 @@ func parseBranchType(input common.Input) (branch.Type, error) {
 }
 
 func convertIssueTypeToBranchType(jiraIssueType network.IssueType, networkTypes []network.IssueType) (branch.Type, error) {
-    localTypes := os.Getenv("branch.mapping")
+    localTypes := viper.GetString("branch.mapping")
     if localTypes == "" {
         return branch.NULL, fmt.Errorf("get issue type: branch.mapping is not set")
     }
@@ -139,7 +139,7 @@ func (dlb *deleteLocalBranchStrategy) Execute() error {
         return err
     }
 
-    devBranch := os.Getenv("branch.default")
+    devBranch := viper.GetString("branch.default")
     hasBranch := HasBranch(devBranch)
 
     checkoutCommand, err := Checkout(devBranch, hasBranch)

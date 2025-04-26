@@ -1,32 +1,37 @@
 package command
 
 import (
+    "errors"
     "fmt"
-    "os"
+    "github.com/spf13/viper"
     "os/exec"
-    "path/filepath"
     "slices"
     "twig/log"
 
-    "github.com/joho/godotenv"
+    "github.com/mitchellh/go-homedir"
 )
 
 func ReadEnvVariables() error {
-    homeDir, err := os.UserHomeDir()
+    home, err := homedir.Dir()
     if err != nil {
-        return fmt.Errorf("read env: obtaining home directory: %w", err)
-    }
-    log.Debug().Printf("read env: home dir = %s", homeDir)
-
-    envPath := filepath.Join(homeDir, ".config", "twig", ".env")
-    log.Debug().Printf("read env: env path = %s", envPath)
-
-    err = godotenv.Load(envPath)
-    if err != nil {
-        return fmt.Errorf("read env: load: %w", err)
+        log.Fatal().Println(err)
     }
 
-    log.Info().Println("environment loaded")
+    viper.AddConfigPath(home + "/.config/twig/")
+    viper.SetConfigName(".env")
+    viper.SetConfigType("env")
+
+    if err = viper.ReadInConfig(); err != nil {
+        var configFileNotFoundError viper.ConfigFileNotFoundError
+
+        if errors.As(err, &configFileNotFoundError) {
+            return fmt.Errorf("config file not found: %w", err)
+        } else {
+            return fmt.Errorf("unable to read config file: %w", err)
+        }
+    }
+
+    log.Info().Println("config loaded")
     return nil
 }
 

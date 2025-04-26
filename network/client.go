@@ -19,9 +19,9 @@ type jiraCredentials struct {
 
 func readJiraCredentials() *jiraCredentials {
     return &jiraCredentials{
-        host:  os.Getenv("BRCHA_HOST"),
-        email: os.Getenv("BRCHA_EMAIL"),
-        token: os.Getenv("BRCHA_TOKEN"),
+        host:  os.Getenv("project.host"),
+        email: os.Getenv("project.email"),
+        token: os.Getenv("project.token"),
     }
 }
 

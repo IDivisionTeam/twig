@@ -1,5 +1,20 @@
 # twig ![tests](https://github.com/yaroslav-android/twig/actions/workflows/go.yml/badge.svg)
 
+<br/>
+
+# Table of Contents
+- [Overview](#overview)
+- [Features](#features)
+- [Installation](#installation)
+- [Usage](#usage)
+    - [twig-help](#twig-help)
+    - [twig-create](#twig-create)
+    - [twig-clean](#twig-clean)
+- [Configuration](#configuration)
+- [More Examples](#more-examples)
+
+<br/>
+
 ## Overview
 
 Streamline your workflow with a CLI tool that integrates Git and Jira. Quickly create, name, and delete branches using the Issue Key, ensuring consistency and efficiency in branch management.
@@ -14,26 +29,39 @@ Streamline your workflow with a CLI tool that integrates Git and Jira. Quickly c
 
 ## Installation
 
-1. Configure your Jira API settings in the `twig.config` file.
+1. Configure your Jira API settings in the `twig.toml` file.
 
 ```
-project.host=example.atlassian.net
-project.email=example.user@example.com
-project.token=api_token
+[project]
+host  = "example.atlassian.net"
+email = "example.user@example.com"
+token = "api_token"
 ```
 
-> *NOTE: for* `Bearer` *auth leave* `project.email` *field empty!*
+> *NOTE: for* `Bearer` *auth leave* `email` *field empty!*
 
-2. Define mappings for your Jira issue types in the configuration the `twig.config` file. Use zero if you want to ignore a specific type.
-
-```
-branch.mapping=build:0;chore:0;ci:0;docs:0;feat:0;fix:0;pref:0;refactor:0;revert:0;style:0;test:0
-```
-
-If you have multiple IDs of the same type, separate them with a comma (`,`).
+2. Define mappings for your Jira issue types in the configuration the `twig.toml` file. Use **zero** if you want to ignore a specific type.
 
 ```
-branch.mapping=build:10001,10002,10003;...
+[mapping]
+build = ["0"]
+chore = ["0"]
+ci = ["0"]
+docs = ["0"]
+feat = ["0"]
+fix = ["0"]
+pref = ["0"]
+refactor = ["0"]
+revert = ["0"]
+style = ["0"]
+test = ["0"]
+```
+
+If you have multiple IDs of the same type, separate them with a comma.
+
+```
+[mapping]
+build = ["10001", "10002", "10003"]
 ```
 
 You can `curl` available `issuetype`s from Jira.
@@ -58,24 +86,26 @@ curl \
     https://{host}/rest/api/2/issuetype
 ```
 
-3. Specify the `branch.default` which will serve as the base when checking out before deleting local branches. Specify the `branch.origin` to be able to delete branches alongside their corresponding local branches. This ensures consistency and avoids issues during cleanup operations.
+3. Specify the `default` which will serve as the base when checking out before deleting local branches. Specify the `origin` to be able to delete branches alongside their corresponding local branches. This ensures consistency and avoids issues during cleanup operations.
 
 ```
-branch.default=develop
-branch.origin=origin
+[branch]
+default = "development"
+origin  = "origin"
 ```
 
 4. Specify any exclusion phrases to be removed from the branch name, if applicable.
 
 ```
-branch.exclude=front,mobile,android,ios,be,web,spike,eval
+[branch]
+exclude = ["front","mobile","android","ios","be","web","spike","eval"]
 ```
 
-5. Copy `twig.config` file into `~/.config/twig/` folder.
+5. Copy `twig.toml` file into `~/.config/twig/` folder.
 
 ```
 mkdir -p ~/.config/twig/ && \
-cp twig.config ~/.config/twig/
+cp twig.toml ~/.config/twig/
 ```
 
 6. Compile the tool into an executable file or [download compiled executable](https://github.com/yaroslav-android/twig/releases).
@@ -95,8 +125,6 @@ mv twig /usr/local/bin
 ```
 twig [-h | --help] [-v | --version] [--config]
 ```
-
-## Commands
 
 ### twig-help
 

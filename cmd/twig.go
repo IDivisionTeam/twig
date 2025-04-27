@@ -37,7 +37,7 @@ func initConfig() {
 var twigCmd = &cobra.Command{
 	DisableAutoGenTag: true,
 	Use:               "twig",
-	Version:           "1.3.0",
+	Version:           "1.3.1",
 	Args:              cobra.NoArgs,
 }
 

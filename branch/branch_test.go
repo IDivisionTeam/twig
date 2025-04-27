@@ -6,7 +6,7 @@ import (
 )
 
 // Update if not matching twig.config file.
-const phrases = "front,mobile,android,ios,be,web,spike,eval"
+var phrases = []string{"front", "mobile", "android", "ios", "be", "web", "spike", "eval"}
 
 func TestReplacePhrasesOptimisticCase(t *testing.T) {
     in := "[Eval] (Mobile) Test Ticket"

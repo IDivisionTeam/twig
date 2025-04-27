@@ -1,0 +1,22 @@
+[project]
+host  = ""
+email = ""
+token = ""
+
+[branch]
+default = "development"
+origin  = "origin"
+exclude = ["front","mobile","android","ios","be","web","spike","eval"]
+
+[mapping]
+build = ["0"]
+chore = ["0"]
+ci = ["0"]
+docs = ["0"]
+feat = ["0"]
+fix = ["0"]
+pref = ["0"]
+refactor = ["0"]
+revert = ["0"]
+style = ["0"]
+test = ["0"]

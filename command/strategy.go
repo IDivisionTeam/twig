@@ -1,8 +1,8 @@
 package command
 
 import (
+    "errors"
     "fmt"
-    "github.com/spf13/viper"
     "maps"
     "slices"
     "strings"
@@ -10,6 +10,7 @@ import (
     "time"
     "twig/branch"
     "twig/common"
+    "twig/config"
     "twig/log"
     "twig/network"
 )
@@ -52,7 +53,7 @@ func (clb *createLocalBranchStrategy) Execute() error {
 
     branchType, err := parseBranchType(*clb.input)
     if err != nil {
-        return err
+        return fmt.Errorf("create command: %w", err)
     }
 
     if branchType == branch.NULL {
@@ -67,8 +68,8 @@ func (clb *createLocalBranchStrategy) Execute() error {
         }
     }
 
-    excludePhrases := viper.GetString("branch.exclude")
-    if excludePhrases == "" {
+    excludePhrases := config.GetStringArray("branch.exclude")
+    if len(excludePhrases) == 0 {
         log.Warn().Println("branch.exclude is not set")
     }
 
@@ -96,19 +97,14 @@ func parseBranchType(input common.Input) (branch.Type, error) {
 }
 
 func convertIssueTypeToBranchType(jiraIssueType network.IssueType, networkTypes []network.IssueType) (branch.Type, error) {
-    localTypes := viper.GetString("branch.mapping")
-    if localTypes == "" {
-        return branch.NULL, fmt.Errorf("get issue type: branch.mapping is not set")
-    }
-
-    mappedIssueTypes, err := common.ConvertIssueTypesToMap(localTypes, networkTypes)
+    mappedIssueTypes, err := common.ConvertIssueTypesToMap(networkTypes)
     if err != nil {
         return branch.NULL, fmt.Errorf("get issue type: %w", err)
     }
 
     value, ok := mappedIssueTypes[jiraIssueType.Id]
     if !ok {
-        return branch.NULL, fmt.Errorf("get issue type: mapped issue type does not exist")
+        return branch.NULL, errors.New("mapped issue type does not exist")
     }
 
     return value, nil
@@ -139,7 +135,7 @@ func (dlb *deleteLocalBranchStrategy) Execute() error {
         return err
     }
 
-    devBranch := viper.GetString("branch.default")
+    devBranch := config.GetString("branch.default")
     hasBranch := HasBranch(devBranch)
 
     checkoutCommand, err := Checkout(devBranch, hasBranch)

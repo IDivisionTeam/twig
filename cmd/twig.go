@@ -1,9 +1,9 @@
 package cmd
 
 import (
-	"github.com/mitchellh/go-homedir"
+	"fmt"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
+	"twig/config"
 	"twig/log"
 )
 
@@ -16,7 +16,12 @@ func init() {
 		&cfgFile,
 		"config",
 		"",
-		"config file (default is ~/.config/twig/twig.config)",
+		fmt.Sprintf(
+			"config file (default is ~%s/%s/%s)",
+			config.Path,
+			config.Name,
+			config.Type,
+		),
 	)
 
 	twigCmd.AddCommand(
@@ -26,28 +31,7 @@ func init() {
 }
 
 func initConfig() {
-	if cfgFile != "" {
-		log.Debug().Println("Using custom config")
-
-		viper.SetConfigFile(cfgFile)
-		viper.SetConfigType("env")
-	} else {
-		log.Debug().Println("Using default config")
-
-		home, err := homedir.Dir()
-		if err != nil {
-			log.Fatal().Println(err)
-		}
-
-		viper.AddConfigPath(home + "/.config/twig/")
-		viper.SetConfigName("twig.config")
-		viper.SetConfigType("env")
-	}
-
-	if err := viper.ReadInConfig(); err != nil {
-		log.Fatal().Println(err)
-	}
-	log.Debug().Println("Config loaded")
+	config.InitConfig(cfgFile)
 }
 
 var twigCmd = &cobra.Command{

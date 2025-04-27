@@ -26,7 +26,7 @@ var (
     initExcludePhrasesOnce sync.Once
 )
 
-func BuildName(bt Type, jiraIssue network.JiraIssue, excludePhrases string) string {
+func BuildName(bt Type, jiraIssue network.JiraIssue, excludePhrases []string) string {
     log.Info().Println("preparing branch")
     branchType := bt.ToString()
     log.Debug().Printf("build name: issue %s[%s] with branch type of '%s'", jiraIssue.Key, jiraIssue.Fields.Type.Id, branchType)
@@ -61,7 +61,7 @@ func stripRegex(in string) string {
     return phrase
 }
 
-func replacePhrases(in string, rawPhrases string) string {
+func replacePhrases(in string, rawPhrases []string) string {
     log.Debug().Printf("replace phrases: transform: %s", in)
 
     phrase := in
@@ -76,10 +76,8 @@ func replacePhrases(in string, rawPhrases string) string {
     return phrase
 }
 
-func prepareExcludeRegx(rawExcludes string) func() {
+func prepareExcludeRegx(excludes []string) func() {
     return func() {
-        excludes := strings.Split(rawExcludes, ",")
-
         for _, v := range excludes {
             re := regexp.MustCompile("(?i)(\\[" + v + "\\]|\\(" + v + "\\))")
             excludePhrases = append(excludePhrases, re)

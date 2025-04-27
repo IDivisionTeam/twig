@@ -71,18 +71,6 @@
         },
         {
             "type": "go",
-            "name": "twig clean remote",
-            "goExecPath": "/usr/local/go/bin/go",
-            "buildParams": [
-                "$PROJECT_DIR$/main.go",
-            ],
-            "runParams": [
-                "clean",
-                "remote"
-            ]
-        },
-        {
-            "type": "go",
             "name": "twig clean all -a",
             "goExecPath": "/usr/local/go/bin/go",
             "buildParams": [

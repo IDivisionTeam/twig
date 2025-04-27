@@ -4,10 +4,10 @@ import (
     "bytes"
     "encoding/json"
     "fmt"
-    "github.com/spf13/viper"
     "io"
     "net/http"
     "strings"
+    "twig/config"
     "twig/log"
 )
 
@@ -19,9 +19,9 @@ type jiraCredentials struct {
 
 func readJiraCredentials() *jiraCredentials {
     return &jiraCredentials{
-        host:  viper.GetString("project.host"),
-        email: viper.GetString("project.email"),
-        token: viper.GetString("project.token"),
+        host:  config.GetString("project.host"),
+        email: config.GetString("project.email"),
+        token: config.GetString("project.token"),
     }
 }
 

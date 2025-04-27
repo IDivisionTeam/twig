@@ -2,10 +2,10 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"net/http"
 	"twig/command"
 	"twig/common"
+	"twig/config"
 	"twig/log"
 	"twig/network"
 )
@@ -70,7 +70,7 @@ var cleanAllCmd = &cobra.Command{
 			Arguments: make(map[common.InputType]string),
 		}
 
-		input.Arguments[common.Remote] = viper.GetString("branch.origin")
+		input.Arguments[common.Remote] = config.GetString("branch.origin")
 
 		if assignee != "" {
 			input.Arguments[common.Assignee] = assignee

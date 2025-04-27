@@ -1,29 +1,29 @@
 package issue
 
 import (
-    "strings"
+    "errors"
+    "twig/config"
     "twig/log"
 )
 
-func ParseIssueMapping(raw string) map[string]string {
+func ParseIssueMapping() (map[string]string, error) {
     result := make(map[string]string)
+    mapping := config.GetSectionStringMap("mapping")
 
-    types := strings.Split(raw, ";")
-    for _, t := range types {
-        elements := strings.Split(t, ":")
+    if len(mapping) == 0 {
+        return nil, errors.New("branch.mapping is not set")
+    }
 
-        commitType := elements[0]
-        values := strings.Split(elements[1], ",")
-
+    for key, values := range mapping {
         for _, v := range values {
             if v == "0" {
                 continue
             }
-            
-            result[v] = commitType
+
+            result[v] = key
         }
     }
 
     log.Debug().Printf("issue: parsed: %v", result)
-    return result
+    return result, nil
 }

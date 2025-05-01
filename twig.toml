@@ -1,5 +1,6 @@
 [project]
 host  = ""
+auth = ""
 email = ""
 token = ""
 

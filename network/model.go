@@ -1,5 +1,10 @@
 package network
 
+const (
+    basicType  = "basic"
+    bearerType = "bearer"
+)
+
 type JiraIssues struct {
     Issues []JiraIssue `json:"issues"`
 }

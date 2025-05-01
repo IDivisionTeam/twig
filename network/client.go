@@ -14,6 +14,7 @@ import (
 
 type jiraCredentials struct {
     host  string
+    auth  string
     email string
     token string
 }
@@ -21,6 +22,7 @@ type jiraCredentials struct {
 func readJiraCredentials() *jiraCredentials {
     return &jiraCredentials{
         host:  config.GetString(config.ProjectHost),
+        auth:  config.GetString(config.ProjectAuth),
         email: config.GetString(config.ProjectEmail),
         token: config.GetString(config.ProjectToken),
     }
@@ -147,7 +149,10 @@ func (c *networkClient) prepareRequest(method, path string, body io.Reader) (*ht
         return nil, err
     }
 
-    addAuthHeader(request, c.credentials)
+    if err := addAuthHeader(request, c.credentials); err != nil {
+        return nil, err
+    }
+
     if method == http.MethodPost {
         request.Header.Set("Accept", "application/json")
     }
@@ -156,19 +161,21 @@ func (c *networkClient) prepareRequest(method, path string, body io.Reader) (*ht
     return request, nil
 }
 
-func addAuthHeader(request *http.Request, credentials *jiraCredentials) {
-    // TODO (BR-29): change flow
-    isBasicAuth := len(credentials.email) > 0
+func addAuthHeader(request *http.Request, credentials *jiraCredentials) error {
+    auth := strings.ToLower(credentials.auth)
 
-    if isBasicAuth {
+    switch auth {
+    case basicType:
         log.Debug().Println("Use Basic Auth")
         request.SetBasicAuth(credentials.email, credentials.token)
-        return
+        return nil
+    case bearerType:
+        log.Debug().Println("Use Bearer Auth")
+        request.Header.Add("Authorization", fmt.Sprintf("Bearer %s", credentials.token))
+        return nil
+    default:
+        return fmt.Errorf("%q does not support %q auth", config.FromToken(config.ProjectAuth), auth)
     }
-
-    log.Debug().Println("Use Bearer Auth")
-    bearer := "Bearer " + credentials.token
-    request.Header.Add("Authorization", bearer)
 }
 
 func (c *networkClient) sendRequest(method, path string, body io.Reader) (*Response, error) {
@@ -195,7 +202,7 @@ func (c *networkClient) sendRequest(method, path string, body io.Reader) (*Respo
     if err != nil {
         return nil, err
     }
-    
+
     if response.StatusCode == http.StatusOK {
         return &Response{
             statusCode: response.StatusCode,

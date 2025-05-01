@@ -19,6 +19,7 @@ type Token int
 const (
     Project Token = iota
     ProjectHost
+    ProjectAuth
     ProjectEmail
     ProjectToken
 
@@ -44,6 +45,7 @@ const (
 type Config struct {
     Project struct {
         Host  string `mapstructure:"host"`
+        Auth  string `mapstructure:"auth"`
         Email string `mapstructure:"email"`
         Token string `mapstructure:"token"`
     } `mapstructure:"project"`
@@ -153,6 +155,8 @@ func FromToken(token Token) string {
         return "project"
     case ProjectHost:
         return "project.host"
+    case ProjectAuth:
+        return "project.auth"
     case ProjectEmail:
         return "project.email"
     case ProjectToken:

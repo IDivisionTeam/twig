@@ -37,43 +37,41 @@ func runCreate(cmd *cobra.Command, args []string) {
 
 	httpClient := &http.Client{}
 	client := network.NewClient(httpClient)
-
-	cmdName := cmd.Name()
 	issue := args[0]
 
 	if err := validateIssue(issue); err != nil {
-		logCmdFatal(cmdName, err)
+		logCmdFatal(err)
 	}
 
 	jiraIssue, err := client.GetJiraIssue(issue)
 	if err != nil {
-		logCmdFatal(cmdName, err)
+		logCmdFatal(err)
 	}
 
 	if err = validateBranchType(); err != nil {
-		logCmdFatal(cmdName, err)
+		logCmdFatal(err)
 	}
 
 	bt, err := convertInputToBranchType()
-	if err != nil {
-		logCmdFatal(cmdName, err)
+	if err != nil && branchType != "" {
+		logCmdFatal(err)
 	}
 
 	if bt == branch.NULL {
 		jiraIssueTypes, err := client.GetJiraIssueTypes()
 		if err != nil {
-			logCmdFatal(cmdName, err)
+			logCmdFatal(err)
 		}
 
 		bt, err = convertIssueTypeToBranchType(*jiraIssue.Fields.Type, jiraIssueTypes)
 		if err != nil {
-			logCmdFatal(cmdName, err)
+			logCmdFatal(err)
 		}
 	}
 
 	excludePhrases := config.GetStringArray(config.BranchExclude)
 	if len(excludePhrases) == 0 {
-		log.Warn().Println(fmt.Sprintf("%s: %q is not set", cmdName, config.FromToken(config.BranchExclude)))
+		log.Warn().Println(fmt.Sprintf("%q is not set", config.FromToken(config.BranchExclude)))
 	}
 
 	branchName := branch.BuildName(bt, *jiraIssue, excludePhrases)
@@ -81,7 +79,7 @@ func runCreate(cmd *cobra.Command, args []string) {
 
 	checkoutCommand, err := common.Checkout(branchName, hasBranch)
 	if err != nil {
-		logCmdFatal(cmdName, err)
+		logCmdFatal(err)
 	}
 
 	log.Info().Println(checkoutCommand)
@@ -103,7 +101,7 @@ func validateBranchType() error {
 		return nil
 	}
 
-	_, err := common.InputToBranchType(branchType)
+	_, err := branch.InputToBranchType(branchType)
 	if err != nil {
 		return fmt.Errorf("validate: %w", err)
 	}
@@ -113,12 +111,12 @@ func validateBranchType() error {
 }
 
 func convertInputToBranchType() (branch.Type, error) {
-	bt, err := common.InputToBranchType(branchType)
+	bt, err := branch.InputToBranchType(branchType)
 	return bt, fmt.Errorf("convert: %w", err)
 }
 
 func convertIssueTypeToBranchType(jiraIssueType network.IssueType, networkTypes []network.IssueType) (branch.Type, error) {
-	mappedIssueTypes, err := common.ConvertIssueTypesToMap(networkTypes)
+	mappedIssueTypes, err := branch.ConvertIssueTypesToMap(networkTypes)
 	if err != nil {
 		return branch.NULL, fmt.Errorf("convert: %w", err)
 	}

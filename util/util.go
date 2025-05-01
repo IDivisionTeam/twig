@@ -8,7 +8,7 @@ import (
 
 var (
     colorsCache   = make(map[color.Attribute]*color.Color)
-    colorsCacheMu sync.Mutex
+    mu sync.Mutex
 )
 
 func Colorize(c color.Attribute, v ...any) string {
@@ -36,8 +36,8 @@ func Colorizeln(c color.Attribute, v ...any) string {
 }
 
 func getCachedColor(p color.Attribute) *color.Color {
-    colorsCacheMu.Lock()
-    defer colorsCacheMu.Unlock()
+    mu.Lock()
+    defer mu.Unlock()
 
     c, ok := colorsCache[p]
     if !ok {

@@ -11,7 +11,7 @@ func ParseIssueMapping() (map[string]string, error) {
     mapping := config.GetStringMap(config.Mapping)
 
     if len(mapping) == 0 {
-        return nil, fmt.Errorf("%s array is undefined", config.FromToken(config.Mapping))
+        return nil, fmt.Errorf("array %q is undefined", config.FromToken(config.Mapping))
     }
 
     for key, values := range mapping {
@@ -24,6 +24,6 @@ func ParseIssueMapping() (map[string]string, error) {
         }
     }
 
-    log.Debug().Printf("issue: %+v", result)
+    log.Debug().Printf("mapping: %+v", result)
     return result, nil
 }

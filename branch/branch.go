@@ -1,10 +1,12 @@
 package branch
 
 import (
+    "errors"
     "fmt"
     "regexp"
     "strings"
     "sync"
+    "twig/issue"
     "twig/log"
     "twig/network"
 )
@@ -27,9 +29,10 @@ var (
 )
 
 func BuildName(bt Type, jiraIssue network.JiraIssue, excludePhrases []string) string {
-    log.Info().Println("preparing branch")
+    log.Info().Println("Prepare branch")
+
     branchType := bt.ToString()
-    log.Debug().Printf("build name: issue %s[%s] with branch type of '%s'", jiraIssue.Key, jiraIssue.Fields.Type.Id, branchType)
+    log.Debug().Println(fmt.Sprintf("Issue %s(%s), type %q", jiraIssue.Key, jiraIssue.Fields.Type.Id, branchType))
 
     var buffer strings.Builder
 
@@ -51,18 +54,18 @@ func BuildName(bt Type, jiraIssue network.JiraIssue, excludePhrases []string) st
 
 func stripRegex(in string) string {
     phrase := strings.ToLower(in)
-    log.Debug().Printf("strip regex: transform: %s", phrase)
+    log.Debug().Println(fmt.Sprintf("Before strip %q", phrase))
 
     phrase = stripRegx.ReplaceAllString(phrase, wordSeparator)
     phrase = strings.TrimPrefix(phrase, wordSeparator)
     phrase = strings.TrimSuffix(phrase, wordSeparator)
 
-    log.Debug().Printf("strip regex: transform: %s", phrase)
+    log.Debug().Println(fmt.Sprintf("After strip %s", phrase))
     return phrase
 }
 
 func replacePhrases(in string, rawPhrases []string) string {
-    log.Debug().Printf("replace phrases: transform: %s", in)
+    log.Debug().Println(fmt.Sprintf("Before replace %q", in))
 
     phrase := in
     initExcludePhrasesOnce.Do(prepareExcludeRegx(rawPhrases))
@@ -72,7 +75,7 @@ func replacePhrases(in string, rawPhrases []string) string {
     }
 
     phrase = strings.TrimSpace(phrase)
-    log.Debug().Printf("replace phrases: transform: %s", phrase)
+    log.Debug().Println(fmt.Sprintf("After replace %q", phrase))
     return phrase
 }
 
@@ -86,26 +89,82 @@ func prepareExcludeRegx(excludes []string) func() {
 }
 
 func camelToKebab(in string) string {
-    log.Debug().Printf("camel2kebab: transform: %s", in)
+    log.Debug().Println(fmt.Sprintf("Before kebab %q", in))
 
     kebab := firstPassKebabRegx.ReplaceAllString(in, "${1}"+wordSeparator+"${2}")
     kebab = secondPassKebabRegx.ReplaceAllString(kebab, "${1}"+wordSeparator+"${2}")
 
-    log.Debug().Printf("camel2kebab: transform: %s", kebab)
+    log.Debug().Println(fmt.Sprintf("After kebab %q", kebab))
     return strings.ToLower(kebab)
 }
 
 func ExtractIssueNameFromBranch(branchName string) (string, error) {
-    log.Debug().Printf("extract phrase: issue: %s", branchName)
+    log.Debug().Println(fmt.Sprintf("Before extract %q", branchName))
 
     match := issueRegx.FindString(branchName)
     match = strings.TrimSpace(match)
     match = strings.TrimSuffix(match, issueTypeSeparator)
 
     if match == "" {
-        return "", fmt.Errorf("extract phrase: issue: no matches")
+        return "", errors.New("no issue match")
     }
 
-    log.Debug().Printf("extract phrase: issue: %s", match)
+    log.Debug().Println(fmt.Sprintf("After extract %q", match))
     return match, nil
+}
+
+func InputToBranchType(input string) (Type, error) {
+    switch input {
+    case Build, BuildShort:
+        return BUILD, nil
+    case Chore, ChoreShort:
+        return CHORE, nil
+    case Ci:
+        return CI, nil
+    case Docs, DocsShort:
+        return DOCS, nil
+    case Feat, FeatShort:
+        return FEAT, nil
+    case Fix, FixShort:
+        return FIX, nil
+    case Perf, PerfShort:
+        return PERF, nil
+    case Refactor, RefactorShort:
+        return REFACTOR, nil
+    case Revert, RevertShort:
+        return REVERT, nil
+    case Style, StyleShort:
+        return STYLE, nil
+    case Test, TestShort:
+        return TEST, nil
+    default:
+        return NULL, fmt.Errorf("unsupported branch type %q", input)
+    }
+}
+
+func ConvertIssueTypesToMap(issueTypes []network.IssueType) (map[string]Type, error) {
+    issueMap := make(map[string]Type)
+
+    local, err := issue.ParseIssueMapping()
+    if err != nil {
+        return nil, err
+    }
+
+    for _, i := range issueTypes {
+        id, ok := local[i.Id]
+        if !ok {
+            log.Debug().Println(fmt.Sprintf("Unsupported issue type %s (%s)", i.Name, i.Id))
+            continue
+        }
+
+        name, err := InputToBranchType(id)
+        if err != nil {
+            log.Warn().Println(err)
+            continue
+        }
+
+        issueMap[i.Id] = name
+    }
+
+    return issueMap, nil
 }

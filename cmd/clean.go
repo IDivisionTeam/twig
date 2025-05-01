@@ -54,11 +54,9 @@ func runClean(cmd *cobra.Command, args []string) {
 	httpClient := &http.Client{}
 	client := network.NewClient(httpClient)
 
-	cmdParentName := cmd.Parent().Name()
-
 	fetchCommand, err := common.ExecuteFetchPrune()
 	if err != nil {
-		logCmdFatal(cmdParentName, err)
+		logCmdFatal(err)
 	}
 
 	if fetchCommand != "" {
@@ -66,7 +64,7 @@ func runClean(cmd *cobra.Command, args []string) {
 	}
 
 	if err := common.BranchStatus(); err != nil {
-		logCmdFatal(cmdParentName, err)
+		logCmdFatal(err)
 	}
 
 	devBranch := config.GetString(config.BranchDefault)
@@ -74,7 +72,7 @@ func runClean(cmd *cobra.Command, args []string) {
 
 	checkoutCommand, err := common.Checkout(devBranch, hasBranch)
 	if err != nil {
-		logCmdFatal(cmdParentName, err)
+		logCmdFatal(err)
 	}
 
 	if checkoutCommand != "" {
@@ -83,26 +81,26 @@ func runClean(cmd *cobra.Command, args []string) {
 
 	localBranches, err := common.GetLocalBranches()
 	if err != nil {
-		logCmdFatal(cmdParentName, err)
+		logCmdFatal(err)
 	}
 
 	issues, err := pairBranchesWithIssues(localBranches)
 	if err != nil {
-		logCmdFatal(cmdParentName, err)
+		logCmdFatal(err)
 	}
 
 	statuses, err := pairBranchesWithStatuses(client, issues)
 	if err != nil {
-		logCmdFatal(cmdParentName, err)
+		logCmdFatal(err)
 	}
 
 	remote := config.GetString(config.BranchOrigin)
 	if remote == "" {
-		logCmdFatal(cmdParentName, fmt.Errorf("%q is not set", config.BranchOrigin))
+		logCmdFatal(fmt.Errorf("%q is not set", config.BranchOrigin))
 	}
 
 	if err := deleteBranchesIfAny(cmd.Name(), remote, statuses); err != nil {
-		logCmdFatal(cmdParentName, err)
+		logCmdFatal(err)
 	}
 }
 
@@ -174,7 +172,7 @@ func pairBranchesWithStatuses(client network.Client, issues map[string]string) (
 	}
 
 	if len(statuses) == 0 {
-		return nil, fmt.Errorf("pair branch with status: no Jira issues in DONE status")
+		return nil, errors.New("no Jira issues match")
 	}
 
 	return statuses, nil
@@ -187,7 +185,7 @@ func queryIssues(client network.Client, issues map[string]string, statuses map[s
 		jiraIssue, err := client.GetJiraIssueStatus(issue, hasAssignee)
 
 		if err != nil {
-			log.Warn().Println(fmt.Errorf("pair branch with status: %w", err).Error())
+			log.Debug().Println(fmt.Sprintf("Branch with status %s", err.Error()))
 			continue
 		}
 
@@ -195,12 +193,12 @@ func queryIssues(client network.Client, issues map[string]string, statuses map[s
 			email := jiraIssue.Fields.Assignee.Email
 
 			if err = validateJiraIssue(jiraIssue.Key, email, assignee); err != nil {
-				log.Debug().Println(fmt.Errorf("pair branch with status: %w", err).Error())
+				log.Debug().Println(fmt.Sprintf("Validae issue: %s", err.Error()))
 				continue
 			}
 		}
 
-		log.Info().Printf("pair branch with status: [%s] : %s", jiraIssue.Fields.Status.Category.Name, localBranch)
+		log.Debug().Println(fmt.Sprintf("Branch %q with status %q", localBranch, jiraIssue.Fields.Status.Category.Name))
 		statuses[localBranch] = jiraIssue.Fields.Status.Category
 	}
 }
@@ -240,12 +238,12 @@ func bulkQueryIssues(client network.Client, issues map[string]string, statuses m
 			email := jiraIssue.Fields.Assignee.Email
 
 			if err := validateJiraIssue(jiraIssue.Key, email, assignee); err != nil {
-				log.Debug().Printf("pair branch with status: %v", err)
+				log.Debug().Println(fmt.Sprintf("Validate issue: %s", err.Error()))
 				continue
 			}
 		}
 
-		log.Info().Printf("pair branch with status: [%s] : %s", jiraIssue.Fields.Status.Category.Name, localBranch)
+		log.Debug().Println(fmt.Sprintf("Branch %q with status %q", localBranch, jiraIssue.Fields.Status.Category.Name))
 		statuses[localBranch] = jiraIssue.Fields.Status.Category
 	}
 }
@@ -263,7 +261,7 @@ func getJiraIssueStatusBulk(batch int, client network.Client, values []string, h
 
 	jiraIssues, err := client.GetJiraIssueStatusBulk(values[start:end-1], hasAssignee)
 	if err != nil {
-		log.Warn().Printf("pair branch with status: %v", err)
+		log.Debug().Println(fmt.Sprintf("Bulk issue: %s", err.Error()))
 	}
 
 	return jiraIssues
@@ -299,7 +297,7 @@ func pairBranchesWithIssues(rawBranches string) (map[string]string, error) {
 			continue
 		}
 
-		log.Info().Printf("pair branch with issue: [%s] : %s", issue, trimmedBranchName)
+		log.Debug().Println(fmt.Sprintf("Branch %q with issue %q", issue, trimmedBranchName))
 		issues[trimmedBranchName] = issue
 	}
 

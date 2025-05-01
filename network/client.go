@@ -3,6 +3,7 @@ package network
 import (
     "bytes"
     "encoding/json"
+    "errors"
     "fmt"
     "io"
     "net/http"
@@ -45,46 +46,46 @@ func NewClient(client *http.Client) Client {
 }
 
 func (c *networkClient) GetJiraIssueTypes() ([]IssueType, error) {
-    log.Info().Println("sending request <issuetype>")
+    log.Debug().Println(fmt.Sprintf("Request %s 'issuetype'", http.MethodGet))
     path := "issuetype"
 
     response, err := c.sendRequest(http.MethodGet, path, nil)
     if err != nil {
-        return nil, fmt.Errorf("get issue types: %w", err)
+        return nil, err
     }
 
-    log.Debug().Printf("response <issuetype>:\n%s", response.body)
+    log.Debug().Println(fmt.Sprintf("Response %d 'issuetype'\n%s", response.statusCode, response.body))
 
     var jiraIssue []IssueType
     err = json.Unmarshal(response.body, &jiraIssue)
     if err != nil {
-        return nil, fmt.Errorf("get issue: (%d) types unmarshal: %w", response.statusCode, err)
+        return nil, err
     }
 
     return jiraIssue, nil
 }
 
 func (c *networkClient) GetJiraIssue(issueKey string) (*JiraIssue, error) {
-    log.Info().Println("sending request <issue>")
+    log.Debug().Println(fmt.Sprintf("Request %s 'issue'", http.MethodGet))
     path := fmt.Sprintf("issue/%s?fields=issuetype,summary", issueKey)
 
     response, err := c.sendRequest(http.MethodGet, path, nil)
     if err != nil {
-        return nil, fmt.Errorf("get issue: %w", err)
+        return nil, err
     }
 
-    log.Debug().Printf("response <issue>:\n%s", response.body)
+    log.Debug().Println(fmt.Sprintf("Response %d 'issue'\n%s", response.statusCode, response.body))
 
     var jiraIssue JiraIssue
     if err := json.Unmarshal(response.body, &jiraIssue); err != nil {
-        return nil, fmt.Errorf("get issue: (%d) unmarshal: %w", response.statusCode, err)
+        return nil, err
     }
 
     return &jiraIssue, nil
 }
 
 func (c *networkClient) GetJiraIssueStatus(issueKey string, hasAssignee bool) (*JiraIssue, error) {
-    log.Info().Println("sending request <issue-status>")
+    log.Debug().Println(fmt.Sprintf("Request %s 'issue status'", http.MethodGet))
 
     path := fmt.Sprintf("issue/%s?fields=status", issueKey)
     if hasAssignee {
@@ -93,21 +94,21 @@ func (c *networkClient) GetJiraIssueStatus(issueKey string, hasAssignee bool) (*
 
     response, err := c.sendRequest(http.MethodGet, path, nil)
     if err != nil {
-        return nil, fmt.Errorf("get issue: %w", err)
+        return nil, err
     }
 
-    log.Debug().Printf("response <issue-status>:\n%s", response.body)
+    log.Debug().Println(fmt.Sprintf("Response %d 'issue status'\n%s", response.statusCode, response.body))
 
     var jiraIssue JiraIssue
     if err := json.Unmarshal(response.body, &jiraIssue); err != nil {
-        return nil, fmt.Errorf("get issue: (%d) unmarshal: %w", response.statusCode, err)
+        return nil, err
     }
 
     return &jiraIssue, nil
 }
 
 func (c *networkClient) GetJiraIssueStatusBulk(issueKeys []string, hasAssignee bool) ([]JiraIssue, error) {
-    log.Info().Println("sending request <issue-status-bulk>")
+    log.Debug().Println(fmt.Sprintf("Request %s 'issue status bulk'", http.MethodPost))
 
     fields := []string{"status"}
     if hasAssignee {
@@ -119,19 +120,19 @@ func (c *networkClient) GetJiraIssueStatusBulk(issueKeys []string, hasAssignee b
         IssueKeys: issueKeys,
     }
 
-    log.Debug().Printf("request <issue-status-bulk>:\n%+v", body)
+    log.Debug().Printf(fmt.Sprintf("Request body\n%+v", body))
 
     encodedBody, _ := json.Marshal(body)
     response, err := c.sendRequest(http.MethodPost, "issue/bulkfetch", bytes.NewBuffer(encodedBody))
     if err != nil {
-        return nil, fmt.Errorf("get issues: %w", err)
+        return nil, err
     }
 
-    log.Debug().Printf("response <issue-status-bulk>:\n%s", response.body)
+    log.Debug().Println(fmt.Sprintf("Response %d 'issue status bulk'\n%s", response.statusCode, response.body))
 
     var jiraIssues JiraIssues
     if err := json.Unmarshal(response.body, &jiraIssues); err != nil {
-        return nil, fmt.Errorf("get issues: (%d) unmarshal: %w", response.statusCode, err)
+        return nil, err
     }
 
     return jiraIssues.Issues, nil
@@ -139,11 +140,11 @@ func (c *networkClient) GetJiraIssueStatusBulk(issueKeys []string, hasAssignee b
 
 func (c *networkClient) prepareRequest(method, path string, body io.Reader) (*http.Request, error) {
     url := fmt.Sprintf("https://%s/rest/api/2/%s", c.credentials.host, path)
-    log.Debug().Printf("prepare request %s: url= %s", method, url)
+    log.Debug().Println(fmt.Sprintf("Request path %q", path))
 
     request, err := http.NewRequest(method, url, body)
     if err != nil {
-        return nil, fmt.Errorf("prepare request: %w", err)
+        return nil, err
     }
 
     addAuthHeader(request, c.credentials)
@@ -156,15 +157,16 @@ func (c *networkClient) prepareRequest(method, path string, body io.Reader) (*ht
 }
 
 func addAuthHeader(request *http.Request, credentials *jiraCredentials) {
+    // TODO (BR-29): change flow
     isBasicAuth := len(credentials.email) > 0
 
     if isBasicAuth {
-        log.Debug().Println("prepare request: basic auth")
+        log.Debug().Println("Use Basic Auth")
         request.SetBasicAuth(credentials.email, credentials.token)
         return
     }
 
-    log.Debug().Println("prepare request: bearer auth")
+    log.Debug().Println("Use Bearer Auth")
     bearer := "Bearer " + credentials.token
     request.Header.Add("Authorization", bearer)
 }
@@ -172,29 +174,28 @@ func addAuthHeader(request *http.Request, credentials *jiraCredentials) {
 func (c *networkClient) sendRequest(method, path string, body io.Reader) (*Response, error) {
     request, err := c.prepareRequest(method, path, body)
     if err != nil {
-        return nil, fmt.Errorf("send request: %w", err)
+        return nil, err
     }
 
-    log.Debug().Println("send request: enqueue request")
+    log.Debug().Println(fmt.Sprintf("Enqueue request %q", path))
     response, err := c.client.Do(request)
     if err != nil {
-        log.Warn().Println("verify auth type (basic or bearer)")
-        return nil, fmt.Errorf("send request: %w", err)
+        log.Warn().Println("Verify auth type (Basic/Bearer)")
+        return nil, err
     }
 
     defer func(Body io.ReadCloser) {
         err := Body.Close()
         if err != nil {
-            log.Error().Printf("send request: %v", err)
+            log.Error().Println(fmt.Errorf("request: %w", err))
         }
     }(response.Body)
 
     data, err := io.ReadAll(response.Body)
     if err != nil {
-        return nil, fmt.Errorf("send request: read response bytes: %w", err)
+        return nil, err
     }
-
-    log.Info().Printf("status code = %d", response.StatusCode)
+    
     if response.StatusCode == http.StatusOK {
         return &Response{
             statusCode: response.StatusCode,
@@ -204,9 +205,9 @@ func (c *networkClient) sendRequest(method, path string, body io.Reader) (*Respo
 
     var jiraError JiraError
     if err := json.Unmarshal(data, &jiraError); err != nil {
-        return nil, fmt.Errorf("send request: unmarshal error: %w", err)
+        return nil, err
     }
 
-    errors := strings.Join(jiraError.ErrorMessages[:], "\n")
-    return nil, fmt.Errorf("send request: Jira API: %s", errors)
+    errs := strings.Join(jiraError.ErrorMessages[:], "\n")
+    return nil, errors.New(errs)
 }

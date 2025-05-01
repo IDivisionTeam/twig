@@ -17,30 +17,54 @@ const (
     TEST
 )
 
+const (
+    Build         = "build"
+    BuildShort    = "b"
+    Chore         = "chore"
+    ChoreShort    = "ch"
+    Ci            = "ci"
+    Docs          = "docs"
+    DocsShort     = "d"
+    Feat          = "feat"
+    FeatShort     = "ft"
+    Fix           = "fix"
+    FixShort      = "fx"
+    Perf          = "perf"
+    PerfShort     = "p"
+    Refactor      = "refactor"
+    RefactorShort = "rf"
+    Revert        = "revert"
+    RevertShort   = "rv"
+    Style         = "style"
+    StyleShort    = "s"
+    Test          = "test"
+    TestShort     = "t"
+)
+
 func (t Type) ToString() string {
     switch t {
     case BUILD:
-        return "build"
+        return Build
     case CHORE:
-        return "chore"
+        return Chore
     case CI:
-        return "ci"
+        return Ci
     case DOCS:
-        return "docs"
+        return Docs
     case FEAT:
-        return "feat"
+        return Feat
     case FIX:
-        return "fix"
+        return Fix
     case PERF:
-        return "perf"
+        return Perf
     case REFACTOR:
-        return "refactor"
+        return Refactor
     case REVERT:
-        return "revert"
+        return Revert
     case STYLE:
-        return "style"
+        return Style
     case TEST:
-        return "test"
+        return Test
     default:
         return ""
     }

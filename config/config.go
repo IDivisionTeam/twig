@@ -69,7 +69,7 @@ type Config struct {
 
 func trySaveConfig() error {
     if err := viper.WriteConfig(); err != nil {
-        return fmt.Errorf("failed to write config: %w", err)
+        return fmt.Errorf("failed to save config: %w", err)
     }
     return nil
 }
@@ -115,7 +115,7 @@ func GetConfigSnapshot() (Config, error) {
     var cfg Config
 
     if err := viper.UnmarshalExact(&cfg); err != nil {
-        return Config{}, fmt.Errorf("error unmarshaling config: %w", err)
+        return Config{}, fmt.Errorf("failed to get config snapshot: %w", err)
     }
 
     return cfg, nil

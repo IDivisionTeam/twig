@@ -46,11 +46,11 @@ func initConfig() {
 
 func Execute() {
 	if err := twigCmd.Execute(); err != nil {
-		log.Fatal().Println(err)
+		logCmdFatal(err)
 	}
 }
 
-func logCmdFatal(cmdName string, err error) {
-	ew := fmt.Errorf("%s: %w", cmdName, err).Error()
+func logCmdFatal(err error) {
+	ew := fmt.Errorf("Error: %w", err)
 	log.Fatal().Println(ew)
 }

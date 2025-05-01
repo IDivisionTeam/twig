@@ -34,11 +34,12 @@ Streamline your workflow with a CLI tool that integrates Git and Jira. Quickly c
 ```
 [project]
 host  = "example.atlassian.net"
+auth = "basic"
 email = "example.user@example.com"
 token = "api_token"
 ```
 
-> *NOTE: for* `Bearer` *auth leave* `email` *field empty!*
+> *NOTE: for* `Bearer` *auth use* `bearer` * key for auth property!*
 
 2. Define mappings for your Jira issue types in the configuration the `twig.toml` file. Use **zero** if you want to ignore a specific type.
 

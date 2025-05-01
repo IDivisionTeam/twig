@@ -1,15 +1,26 @@
 package cmd
 
 import (
+	"errors"
+	"fmt"
 	"github.com/spf13/cobra"
 	"net/http"
-	"twig/command"
+	"twig/branch"
 	"twig/common"
+	"twig/config"
 	"twig/log"
 	"twig/network"
 )
 
-var branchType string
+var (
+	branchType string
+	createCmd  = &cobra.Command{
+		Use:   "create",
+		Short: "Create branch from Jira Issue",
+		Args:  cobra.MinimumNArgs(1),
+		Run:   runCreate,
+	}
+)
 
 func init() {
 	createCmd.Flags().StringVarP(
@@ -21,28 +32,101 @@ func init() {
 	)
 }
 
-var createCmd = &cobra.Command{
-	Use:   "create",
-	Short: "Create branch from Jira Issue",
-	Args:  cobra.MinimumNArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
-		httpClient := &http.Client{}
-		client := network.NewClient(httpClient)
+func runCreate(cmd *cobra.Command, args []string) {
+	log.Debug().Println("create: executing command")
 
-		input := &common.Input{
-			Flags:     common.EmptyFlag,
-			Arguments: make(map[common.InputType]string),
+	httpClient := &http.Client{}
+	client := network.NewClient(httpClient)
+
+	cmdName := cmd.Name()
+	issue := args[0]
+
+	if err := validateIssue(issue); err != nil {
+		logCmdFatal(cmdName, err)
+	}
+
+	jiraIssue, err := client.GetJiraIssue(issue)
+	if err != nil {
+		logCmdFatal(cmdName, err)
+	}
+
+	if err = validateBranchType(); err != nil {
+		logCmdFatal(cmdName, err)
+	}
+
+	bt, err := convertInputToBranchType()
+	if err != nil {
+		logCmdFatal(cmdName, err)
+	}
+
+	if bt == branch.NULL {
+		jiraIssueTypes, err := client.GetJiraIssueTypes()
+		if err != nil {
+			logCmdFatal(cmdName, err)
 		}
 
-		input.Arguments[common.Issue] = args[0]
-
-		if branchType != "" {
-			input.Arguments[common.BranchType] = branchType
+		bt, err = convertIssueTypeToBranchType(*jiraIssue.Fields.Type, jiraIssueTypes)
+		if err != nil {
+			logCmdFatal(cmdName, err)
 		}
-		createCommand := command.NewCreateLocalBranchCommand(client, input)
+	}
 
-		if err := createCommand.Execute(); err != nil {
-			log.Fatal().Println(err)
-		}
-	},
+	excludePhrases := config.GetStringArray(config.BranchExclude)
+	if len(excludePhrases) == 0 {
+		log.Warn().Println(fmt.Sprintf("%s: %q is not set", cmdName, config.FromToken(config.BranchExclude)))
+	}
+
+	branchName := branch.BuildName(bt, *jiraIssue, excludePhrases)
+	hasBranch := common.HasBranch(branchName)
+
+	checkoutCommand, err := common.Checkout(branchName, hasBranch)
+	if err != nil {
+		logCmdFatal(cmdName, err)
+	}
+
+	log.Info().Println(checkoutCommand)
+}
+
+func validateIssue(issue string) error {
+	if issue == "" {
+		return errors.New("validate: issue-key must not be empty")
+	}
+
+	return nil
+}
+
+func validateBranchType() error {
+	log.Debug().Printf("create: validating type=%s", branchType)
+
+	if branchType == "" {
+		log.Debug().Println("create: type is empty, taking types from Jira")
+		return nil
+	}
+
+	_, err := common.InputToBranchType(branchType)
+	if err != nil {
+		return fmt.Errorf("validate: %w", err)
+	}
+
+	log.Debug().Printf("create: type %s is valid", branchType)
+	return nil
+}
+
+func convertInputToBranchType() (branch.Type, error) {
+	bt, err := common.InputToBranchType(branchType)
+	return bt, fmt.Errorf("convert: %w", err)
+}
+
+func convertIssueTypeToBranchType(jiraIssueType network.IssueType, networkTypes []network.IssueType) (branch.Type, error) {
+	mappedIssueTypes, err := common.ConvertIssueTypesToMap(networkTypes)
+	if err != nil {
+		return branch.NULL, fmt.Errorf("convert: %w", err)
+	}
+
+	value, ok := mappedIssueTypes[jiraIssueType.Id]
+	if !ok {
+		return branch.NULL, errors.New("mapped issue type does not exist")
+	}
+
+	return value, nil
 }

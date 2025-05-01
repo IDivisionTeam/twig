@@ -19,9 +19,9 @@ type jiraCredentials struct {
 
 func readJiraCredentials() *jiraCredentials {
     return &jiraCredentials{
-        host:  config.GetString("project.host"),
-        email: config.GetString("project.email"),
-        token: config.GetString("project.token"),
+        host:  config.GetString(config.ProjectHost),
+        email: config.GetString(config.ProjectEmail),
+        token: config.GetString(config.ProjectToken),
     }
 }
 

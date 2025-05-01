@@ -1,11 +1,10 @@
-package command
+package common
 
 import (
     "fmt"
     "os/exec"
     "slices"
     "twig/log"
-
 )
 
 func HasBranch(branchName string) bool {

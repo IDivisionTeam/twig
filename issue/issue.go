@@ -1,17 +1,17 @@
 package issue
 
 import (
-    "errors"
+    "fmt"
     "twig/config"
     "twig/log"
 )
 
 func ParseIssueMapping() (map[string]string, error) {
     result := make(map[string]string)
-    mapping := config.GetSectionStringMap("mapping")
+    mapping := config.GetStringMap(config.Mapping)
 
     if len(mapping) == 0 {
-        return nil, errors.New("branch.mapping is not set")
+        return nil, fmt.Errorf("%s array is undefined", config.FromToken(config.Mapping))
     }
 
     for key, values := range mapping {
@@ -24,6 +24,6 @@ func ParseIssueMapping() (map[string]string, error) {
         }
     }
 
-    log.Debug().Printf("issue: parsed: %v", result)
+    log.Debug().Printf("issue: %+v", result)
     return result, nil
 }

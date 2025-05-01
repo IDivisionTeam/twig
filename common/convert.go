@@ -8,7 +8,7 @@ import (
     "twig/network"
 )
 
-func ConvertUserInputToBranchType(input string) (branch.Type, error) {
+func InputToBranchType(input string) (branch.Type, error) {
     switch input {
     case "build", "b":
         return branch.BUILD, nil
@@ -52,7 +52,7 @@ func ConvertIssueTypesToMap(issueTypes []network.IssueType) (map[string]branch.T
             continue
         }
 
-        name, err := ConvertUserInputToBranchType(id)
+        name, err := InputToBranchType(id)
         if err != nil {
             log.Warn().Println(fmt.Errorf("convert: %w", err))
             continue

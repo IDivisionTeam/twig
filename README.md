@@ -39,7 +39,7 @@ email = "example.user@example.com"
 token = "api_token"
 ```
 
-> *NOTE: for* `Bearer` *auth use* `bearer` * key for auth property!*
+> *NOTE: for* `Bearer` *auth use* `bearer` *key for auth property!*
 
 2. Define mappings for your Jira issue types in the configuration the `twig.toml` file. Use **zero** if you want to ignore a specific type.
 

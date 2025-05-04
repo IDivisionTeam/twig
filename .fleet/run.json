@@ -33,6 +33,17 @@
         },
         {
             "type": "go",
+            "name": "twig init",
+            "goExecPath": "/usr/local/go/bin/go",
+            "buildParams": [
+                "$PROJECT_DIR$/main.go",
+            ],
+            "runParams": [
+                "init"
+            ]
+        },
+        {
+            "type": "go",
             "name": "twig create",
             "goExecPath": "/usr/local/go/bin/go",
             "buildParams": [

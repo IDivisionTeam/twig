@@ -1,12 +1,18 @@
 package config
 
 import (
+    _ "embed"
     "errors"
     "fmt"
     "github.com/mitchellh/go-homedir"
     "github.com/spf13/viper"
+    "os"
+    "path/filepath"
     "twig/log"
 )
+
+//go:embed twig.toml
+var embededCfg []byte
 
 const (
     Name = "twig"
@@ -43,58 +49,67 @@ const (
 )
 
 type Config struct {
-    Project struct {
-        Host  string `mapstructure:"host"`
-        Auth  string `mapstructure:"auth"`
-        Email string `mapstructure:"email"`
-        Token string `mapstructure:"token"`
-    } `mapstructure:"project"`
-    Branch struct {
-        Default string   `mapstructure:"default"`
-        Origin  string   `mapstructure:"origin"`
-        Exclude []string `mapstructure:"exclude"`
-    } `mapstructure:"branch"`
-    Mapping struct {
-        Build    []int `mapstructure:"build"`
-        Chore    []int `mapstructure:"chore"`
-        Ci       []int `mapstructure:"ci"`
-        Docs     []int `mapstructure:"docs"`
-        Feat     []int `mapstructure:"feat"`
-        Fix      []int `mapstructure:"fix"`
-        Pref     []int `mapstructure:"pref"`
-        Refactor []int `mapstructure:"refactor"`
-        Revert   []int `mapstructure:"revert"`
-        Style    []int `mapstructure:"style"`
-        Test     []int `mapstructure:"test"`
-    } `mapstructure:"mapping"`
+    Project ProjectCfg `mapstructure:"project"`
+    Branch  BranchCfg  `mapstructure:"branch"`
+    Mapping MappingCfg `mapstructure:"mapping"`
 }
 
-func trySaveConfig() error {
+type ProjectCfg struct {
+    Host  string `mapstructure:"host"`
+    Auth  string `mapstructure:"auth"`
+    Email string `mapstructure:"email"`
+    Token string `mapstructure:"token"`
+}
+
+type BranchCfg struct {
+    Default string   `mapstructure:"default"`
+    Origin  string   `mapstructure:"origin"`
+    Exclude []string `mapstructure:"exclude"`
+}
+
+type MappingCfg struct {
+    Build    []int `mapstructure:"build"`
+    Chore    []int `mapstructure:"chore"`
+    Ci       []int `mapstructure:"ci"`
+    Docs     []int `mapstructure:"docs"`
+    Feat     []int `mapstructure:"feat"`
+    Fix      []int `mapstructure:"fix"`
+    Pref     []int `mapstructure:"pref"`
+    Refactor []int `mapstructure:"refactor"`
+    Revert   []int `mapstructure:"revert"`
+    Style    []int `mapstructure:"style"`
+    Test     []int `mapstructure:"test"`
+}
+
+func overrideConfig() error {
     if err := viper.WriteConfig(); err != nil {
         return fmt.Errorf("failed to save config: %w", err)
     }
     return nil
 }
 
-func SetString(token string, value string) error {
-    viper.Set(token, value)
-    return trySaveConfig()
+func SetString(token Token, value string) error {
+    viper.Set(FromToken(token), value)
+    return overrideConfig()
 }
 
-func SetStringArray(token string, value []string) error {
-    viper.Set(token, value)
-    return trySaveConfig()
+func SetStringArray(token Token, value []string) error {
+    viper.Set(FromToken(token), value)
+    return overrideConfig()
 }
 
-func SetIntArray(token string, value []int) error {
-    for _, v := range value {
-        if v < 0 {
-            return errors.New("values less than 0 are not permitted")
-        }
+func castStringToInterface(src string) any {
+    var tgt any
+    tgt = src
+    return tgt
+}
+
+func castSliceToInterface(src []string) []any {
+    var tgt []any
+    for k, v := range src {
+        tgt[k] = v
     }
-
-    viper.Set(token, value)
-    return trySaveConfig()
+    return tgt
 }
 
 func GetString(token Token) string {
@@ -147,6 +162,65 @@ func InitConfig(file string) {
     }
 
     log.Debug().Println("Config loaded")
+}
+
+func IsConfigExist() error {
+    home, err := homedir.Dir()
+    if err != nil {
+        log.Fatal().Println(err)
+    }
+
+    fileName := fmt.Sprintf("%s.%s", Name, Type)
+    path := filepath.Join(home, Path, fileName)
+
+    _, err = os.Stat(path)
+
+    if err == nil || os.IsExist(err) {
+        return errors.New("config exist, abort")
+    }
+    return nil
+}
+
+func CreateConfigDir() error {
+    home, err := homedir.Dir()
+    if err != nil {
+        log.Fatal().Println(err)
+    }
+
+    path := filepath.Join(home, Path)
+    err = os.MkdirAll(path, os.ModeDir)
+
+    if err == nil || os.IsExist(err) {
+        return nil
+    } else {
+        return err
+    }
+}
+
+func CreatConfigFile() error {
+    home, err := homedir.Dir()
+    if err != nil {
+        log.Fatal().Println(err)
+    }
+
+    fileName := fmt.Sprintf("%s.%s", Name, Type)
+    path := filepath.Join(home, Path, fileName)
+
+    file, err := os.Create(path)
+    if err != nil {
+        return err
+    }
+
+    _, err = file.Write(embededCfg)
+    if err != nil {
+        return err
+    }
+
+    if err = file.Close(); err != nil {
+        return err
+    }
+
+    return nil
 }
 
 func FromToken(token Token) string {

@@ -1,8 +1,8 @@
 package network
 
 const (
-    basicType  = "basic"
-    bearerType = "bearer"
+    BasicType  = "basic"
+    BearerType = "bearer"
 )
 
 type JiraIssues struct {

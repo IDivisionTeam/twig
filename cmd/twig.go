@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"github.com/spf13/cobra"
+	"os"
 	"twig/config"
 	"twig/log"
 )
@@ -35,13 +36,22 @@ func init() {
 	)
 
 	twigCmd.AddCommand(
+		initCmd,
 		createCmd,
 		cleanCmd,
 	)
 }
 
 func initConfig() {
-	config.InitConfig(cfgFile)
+	init, _, err := twigCmd.Find(os.Args[1:])
+	if err != nil {
+		log.Debug().Println("Unable to find command for config initConfig")
+		return
+	}
+
+	if init != nil && init.Name() != "init" {
+		config.InitConfig(cfgFile)
+	}
 }
 
 func Execute() {

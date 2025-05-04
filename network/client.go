@@ -165,11 +165,11 @@ func addAuthHeader(request *http.Request, credentials *jiraCredentials) error {
     auth := strings.ToLower(credentials.auth)
 
     switch auth {
-    case basicType:
+    case BasicType:
         log.Debug().Println("Use Basic Auth")
         request.SetBasicAuth(credentials.email, credentials.token)
         return nil
-    case bearerType:
+    case BearerType:
         log.Debug().Println("Use Bearer Auth")
         request.Header.Add("Authorization", fmt.Sprintf("Bearer %s", credentials.token))
         return nil

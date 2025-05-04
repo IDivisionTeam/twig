@@ -165,12 +165,15 @@ twig init
 ### twig-create
 
 ```
-twig create <issue-key> [-t | --type]
+twig create <issue-key> [-p | --push] [-t | --type]
 ```
 
 Creates the branch using Jira Issue Key as prefix after branch type.
 
 #### Options
+
+`-p` <br/>
+`--push` - (optional) Pushes the local branch to the remote when it's created.
 
 `-t` <br/>
 `--type` - (optional) Overrides the type of branch to create, allowing the branch name ignore mapped Jira issue types. Branches are named according to the [standard](https://www.conventionalcommits.org/en/v1.0.0/).
@@ -240,6 +243,12 @@ func BuildName(bt Type, jiraIssue network.JiraIssue, excludePhrases string) stri
 ```
 ~% twig create XX-111
 ~% branch created: task/XX-111_jira-issue-name
+```
+
+```
+~% twig create XX-111 -p
+~% branch created: task/XX-111_jira-issue-name
+~% remote branch created: task/XX-111_jira-issue-name
 ```
 
 ```

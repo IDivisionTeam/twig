@@ -14,6 +14,7 @@ import (
 
 var (
 	branchType string
+	shouldPush bool
 	createCmd  = &cobra.Command{
 		Use:   "create",
 		Short: "Create branch from Jira Issue",
@@ -29,6 +30,13 @@ func init() {
 		"t",
 		"",
 		"(optional) overrides the type of branch",
+	)
+	createCmd.Flags().BoolVarP(
+		&shouldPush,
+		"push",
+		"p",
+		false,
+		"(optional) push branch to the remote",
 	)
 }
 
@@ -83,6 +91,17 @@ func runCreate(cmd *cobra.Command, args []string) {
 	}
 
 	log.Info().Println(checkoutCommand)
+
+	if shouldPush {
+		remote := config.GetString(config.BranchOrigin)
+
+		pushCommand, err := common.PushToRemote(branchName, remote)
+		if err != nil {
+			logCmdFatal(err)
+		}
+
+		log.Info().Println(pushCommand)
+	}
 }
 
 func validateIssue(issue string) error {

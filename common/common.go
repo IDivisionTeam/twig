@@ -97,3 +97,14 @@ func DeleteRemoteBranch(remote string, branchName string) (string, error) {
 
     return string(out), nil
 }
+
+func PushToRemote(branchName string, remote string) (string, error) {
+    log.Info().Println(fmt.Sprintf("Push branch to remote '%s/%s'", remote, branchName))
+
+    out, err := exec.Command("git", "push", "-u", remote, branchName).CombinedOutput()
+    if err != nil {
+        return string(out), err
+    }
+
+    return string(out), nil
+}

@@ -8,7 +8,7 @@ import (
 	"twig/log"
 )
 
-const version = "1.3.2"
+const version = "1.4.0"
 
 var (
 	cfgFile string

@@ -23,7 +23,8 @@ const (
 type Token int
 
 const (
-    Project Token = iota
+    Unspecified Token = iota - 1
+    Project
     ProjectHost
     ProjectAuth
     ProjectEmail
@@ -68,17 +69,17 @@ type BranchCfg struct {
 }
 
 type MappingCfg struct {
-    Build    []int `mapstructure:"build"`
-    Chore    []int `mapstructure:"chore"`
-    Ci       []int `mapstructure:"ci"`
-    Docs     []int `mapstructure:"docs"`
-    Feat     []int `mapstructure:"feat"`
-    Fix      []int `mapstructure:"fix"`
-    Pref     []int `mapstructure:"pref"`
-    Refactor []int `mapstructure:"refactor"`
-    Revert   []int `mapstructure:"revert"`
-    Style    []int `mapstructure:"style"`
-    Test     []int `mapstructure:"test"`
+    Build    []string `mapstructure:"build"`
+    Chore    []string `mapstructure:"chore"`
+    Ci       []string `mapstructure:"ci"`
+    Docs     []string `mapstructure:"docs"`
+    Feat     []string `mapstructure:"feat"`
+    Fix      []string `mapstructure:"fix"`
+    Pref     []string `mapstructure:"pref"`
+    Refactor []string `mapstructure:"refactor"`
+    Revert   []string `mapstructure:"revert"`
+    Style    []string `mapstructure:"style"`
+    Test     []string `mapstructure:"test"`
 }
 
 func overrideConfig() error {
@@ -255,5 +256,54 @@ func FromToken(token Token) string {
         return "mapping.test"
     default:
         return ""
+    }
+}
+
+func FromInput(token string) (Token, error) {
+    switch token {
+    case "project":
+        return Project, nil
+    case "project.host":
+        return ProjectHost, nil
+    case "project.auth":
+        return ProjectAuth, nil
+    case "project.email":
+        return ProjectEmail, nil
+    case "project.token":
+        return ProjectToken, nil
+    case "branch":
+        return Branch, nil
+    case "branch.default":
+        return BranchDefault, nil
+    case "branch.origin":
+        return BranchOrigin, nil
+    case "branch.exclude":
+        return BranchExclude, nil
+    case "mapping":
+        return Mapping, nil
+    case "mapping.build":
+        return MappingBuild, nil
+    case "mapping.chore":
+        return MappingChore, nil
+    case "mapping.ci":
+        return MappingCi, nil
+    case "mapping.docs":
+        return MappingDocs, nil
+    case "mapping.feat":
+        return MappingFeat, nil
+    case "mapping.fix":
+        return MappingFix, nil
+    case "mapping.pref":
+        return MappingPref, nil
+    case "mapping.refactor":
+        return MappingRefactor, nil
+    case "mapping.revert":
+        return MappingRevert, nil
+    case "mapping.style":
+        return MappingStyle, nil
+    case "mapping.test":
+        return MappingTest, nil
+    default:
+        return Unspecified, errors.New("unexpected token from input")
     }
 }

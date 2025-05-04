@@ -39,6 +39,7 @@ func init() {
 		initCmd,
 		createCmd,
 		cleanCmd,
+		configCmd,
 	)
 }
 

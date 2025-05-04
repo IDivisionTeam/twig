@@ -93,6 +93,45 @@
                 "-a",
                 "xxx"
             ]
+        },
+        {
+            "type": "go",
+            "name": "twig config list",
+            "goExecPath": "/usr/local/go/bin/go",
+            "buildParams": [
+                "$PROJECT_DIR$/main.go",
+            ],
+            "runParams": [
+                "config",
+                "list"
+            ]
+        },
+        {
+            "type": "go",
+            "name": "twig config get",
+            "goExecPath": "/usr/local/go/bin/go",
+            "buildParams": [
+                "$PROJECT_DIR$/main.go",
+            ],
+            "runParams": [
+                "config",
+                "get",
+                "branch.exclude"
+            ]
+        },
+        {
+            "type": "go",
+            "name": "twig config set",
+            "goExecPath": "/usr/local/go/bin/go",
+            "buildParams": [
+                "$PROJECT_DIR$/main.go",
+            ],
+            "runParams": [
+                "config",
+                "set",
+                "branch.exclude",
+                "front,mobile,android,ios,be,web,spike,eval"
+            ]
         }
     ]
 }

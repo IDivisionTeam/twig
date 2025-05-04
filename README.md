@@ -8,6 +8,7 @@
 - [Installation](#installation)
 - [Usage](#usage)
     - [twig-help](#twig-help)
+    - [twig-init](#twig-init)
     - [twig-create](#twig-create)
     - [twig-clean](#twig-clean)
 - [Configuration](#configuration)
@@ -28,8 +29,9 @@ Streamline your workflow with a CLI tool that integrates Git and Jira. Quickly c
 - Branch Deletion: Conveniently delete branches directly from the CLI for efficient repository management.
 
 ## Installation
+> Preferably, start from the step 6 and use the [twig-init](#twig-init) command to set up your configuration.
 
-1. Configure your Jira API settings in the `twig.toml` file.
+1. Configure your Jira API and VCS settings in the `twig.toml` file.
 
 ```
 [project]
@@ -110,6 +112,7 @@ cp twig.toml ~/.config/twig/
 ```
 
 6. Compile the tool into an executable file or [download compiled executable](https://github.com/yaroslav-android/twig/releases).
+> *NOTE: you might need to apply `chmod +x` to the executable if you've downloaded the precompiled version.*
 
 ```
 go build
@@ -139,6 +142,22 @@ Displays help information for all available commands and options in the CLI tool
 
 ```terminal
 twig help create
+```
+
+<br/>
+
+### twig-init
+
+```
+twig init
+```
+
+Creates a config file and folders (if they don't exist), prompts you with questions to set up the configuration interactively.
+
+#### Examples
+
+```terminal
+twig init
 ```
 
 <br/>

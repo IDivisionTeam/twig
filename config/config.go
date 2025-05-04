@@ -98,20 +98,6 @@ func SetStringArray(token Token, value []string) error {
     return overrideConfig()
 }
 
-func castStringToInterface(src string) any {
-    var tgt any
-    tgt = src
-    return tgt
-}
-
-func castSliceToInterface(src []string) []any {
-    var tgt []any
-    for k, v := range src {
-        tgt[k] = v
-    }
-    return tgt
-}
-
 func GetString(token Token) string {
     return viper.GetString(FromToken(token))
 }

@@ -31,7 +31,7 @@ Streamline your workflow with a CLI tool that integrates Git and Jira. Quickly c
 ## Installation
 > Preferably, start from the step 6 and use the [twig-init](#twig-init) command to set up your configuration.
 
-1. Configure your Jira API and VCS settings in the `twig.toml` file.
+1. Configure your Jira API and VCS settings in the `twig/config/twig.toml` file.
 
 ```
 [project]
@@ -104,7 +104,7 @@ origin  = "origin"
 exclude = ["front","mobile","android","ios","be","web","spike","eval"]
 ```
 
-5. Copy `twig.toml` file into `~/.config/twig/` folder.
+5. Copy `twig/config/twig.toml` file into `~/.config/twig/` folder.
 
 ```
 mkdir -p ~/.config/twig/ && \

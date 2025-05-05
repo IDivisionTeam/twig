@@ -67,6 +67,10 @@ func runInit(cmd *cobra.Command, args []string) {
 		logCmdFatal(err)
 	}
 
+	if err := setBranchExcludesFromInput(c, input); err != nil {
+		logCmdFatal(err)
+	}
+
 	log.Info().Println("\nMapping Group")
 	if err := setMappingFromInput(c, input); err != nil {
 		logCmdFatal(err)
@@ -198,6 +202,31 @@ func setBranchOriginFromInput(c *color.Color, in *prompt.PosixParser) error {
 		return err
 	}
 	log.Debug().Println(fmt.Sprintf("Input origin: %q", value))
+
+	return nil
+}
+
+func setBranchExcludesFromInput(c *color.Color, in *prompt.PosixParser) error {
+	fmt.Print(c.Sprint("Exclude any words from the branch name? (e.g. be,mobile,web): "))
+
+	str, err := in.Read()
+	if err != nil {
+		return err
+	}
+	value := strings.TrimSpace(string(str))
+	if value == "" {
+		return nil // skip, using default
+	}
+
+	valueArr := strings.Split(value, ",")
+	for i, _ := range valueArr {
+		// and trim space just in case
+		valueArr[i] = strings.TrimSpace(valueArr[i])
+	}
+	if err = config.SetStringArray(config.BranchExclude, valueArr); err != nil {
+		return err
+	}
+	log.Debug().Println(fmt.Sprintf("Input exclude: %q", value))
 
 	return nil
 }

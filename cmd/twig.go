@@ -1,9 +1,12 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"github.com/spf13/cobra"
 	"os"
+	"strings"
+	"twig/common"
 	"twig/config"
 	"twig/log"
 )
@@ -17,6 +20,34 @@ var (
 		Use:               "twig",
 		Version:           version,
 		Args:              cobra.NoArgs,
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			command, _, err := cmd.Find(os.Args[1:])
+			if err != nil {
+				return
+			}
+
+			cleanAllName := strings.HasPrefix(
+				command.Name(),
+				fmt.Sprintf("%s %s", cleanCmdName, cleanAllCmdName),
+			)
+			cleanLocalName := strings.HasPrefix(
+				command.Name(),
+				fmt.Sprintf("%s %s", cleanCmdName, cleanLocalCmdName),
+			)
+
+			createName := strings.HasPrefix(
+				command.Name(),
+				createCmdName,
+			)
+
+			matchesCmdName := cleanAllName || cleanLocalName || createName
+
+			if command != nil && matchesCmdName {
+				if !common.HasGit() {
+					logCmdFatal(errors.New("first, Git must be installed! https://git-scm.com/downloads/mac"))
+				}
+			}
+		},
 	}
 )
 
@@ -50,7 +81,7 @@ func initConfig() {
 		return
 	}
 
-	if init != nil && init.Name() != "init" {
+	if init != nil && !strings.HasPrefix(init.Name(), InitCmdName) {
 		config.InitConfig(cfgFile)
 	}
 }

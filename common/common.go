@@ -3,13 +3,17 @@ package common
 import (
     "errors"
     "fmt"
-    "os/exec"
     "slices"
+    "twig/git"
     "twig/log"
 )
 
+func HasGit() bool {
+    return git.Command(git.Version).Run() == nil
+}
+
 func HasBranch(branchName string) bool {
-    err := exec.Command("git", "branch", "--contains", branchName).Run()
+    err := git.Command(git.Branch, "--contains", branchName).Run()
 
     doesExist := err == nil
     if doesExist {
@@ -24,14 +28,14 @@ func HasBranch(branchName string) bool {
 func Checkout(branchName string, hasBranch bool) (string, error) {
     log.Info().Println(fmt.Sprintf("Checkout to %q", branchName))
 
-    args := []string{"checkout", branchName}
+    args := []string{branchName}
 
     if !hasBranch {
         log.Debug().Printf(fmt.Sprintf("Branch %q is new, adding '-b' flag", branchName))
-        args = slices.Insert(args, 1, "-b")
+        args = slices.Insert(args, 0, "-b")
     }
 
-    out, err := exec.Command("git", args...).CombinedOutput()
+    out, err := git.Command(git.Checkout, args...).CombinedOutput()
     if err != nil {
         return string(out), err
     }
@@ -42,12 +46,12 @@ func Checkout(branchName string, hasBranch bool) (string, error) {
 func BranchStatus() error {
     log.Info().Println("Check branch status")
 
-    out, err := exec.Command("git", "status", "-s").CombinedOutput()
+    out, err := git.Command(git.Status, "-s").CombinedOutput()
     if err != nil {
         return err
     }
 
-    if outputSize := len(string(out)); outputSize > 0 {
+    if outputSize := len(string(out)); outputSize > 1 {
         return errors.New("current branch has uncommitted changes")
     }
 
@@ -57,7 +61,7 @@ func BranchStatus() error {
 func GetLocalBranches() (string, error) {
     log.Info().Println("Get local branches")
 
-    out, err := exec.Command("git", "branch").CombinedOutput()
+    out, err := git.Command(git.Branch).CombinedOutput()
     if err != nil {
         return "", err
     }
@@ -68,7 +72,7 @@ func GetLocalBranches() (string, error) {
 func ExecuteFetchPrune() (string, error) {
     log.Info().Println("Run fetch and prune")
 
-    out, err := exec.Command("git", "fetch", "-p").CombinedOutput()
+    out, err := git.Command(git.Fetch, "-p").CombinedOutput()
     if err != nil {
         return "", err
     }
@@ -79,7 +83,7 @@ func ExecuteFetchPrune() (string, error) {
 func DeleteLocalBranch(branchName string) (string, error) {
     log.Info().Println(fmt.Sprintf("Delete local branch %q", branchName))
 
-    out, err := exec.Command("git", "branch", "-D", branchName).CombinedOutput()
+    out, err := git.Command(git.Branch, "-D", branchName).CombinedOutput()
     if err != nil {
         return string(out), err
     }
@@ -90,7 +94,7 @@ func DeleteLocalBranch(branchName string) (string, error) {
 func DeleteRemoteBranch(remote string, branchName string) (string, error) {
     log.Info().Println(fmt.Sprintf("Delete remote branch '%s/%s'", remote, branchName))
 
-    out, err := exec.Command("git", "push", "-d", remote, branchName).CombinedOutput()
+    out, err := git.Command(git.Push, "-d", remote, branchName).CombinedOutput()
     if err != nil {
         return string(out), err
     }
@@ -101,7 +105,7 @@ func DeleteRemoteBranch(remote string, branchName string) (string, error) {
 func PushToRemote(branchName string, remote string) (string, error) {
     log.Info().Println(fmt.Sprintf("Push branch to remote '%s/%s'", remote, branchName))
 
-    out, err := exec.Command("git", "push", "-u", remote, branchName).CombinedOutput()
+    out, err := git.Command(git.Push, "-u", remote, branchName).CombinedOutput()
     if err != nil {
         return string(out), err
     }

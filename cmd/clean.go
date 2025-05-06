@@ -18,12 +18,13 @@ import (
 )
 
 const (
-	requestLimit    = 5
-	itemsPerRequest = 100
-	itemsThreshold = 5
+	requestLimit      = 5
+	itemsPerRequest   = 100
+	itemsThreshold    = 5
 	doneStatusId    = 3
-	cmdAll          = "all"
-	cmdLocal        = "local"
+	cleanCmdName      = "clean"
+	cleanAllCmdName   = "all"
+	cleanLocalCmdName = "local"
 )
 
 var (
@@ -31,21 +32,21 @@ var (
 	mu       sync.Mutex
 	assignee string
 	cleanCmd = &cobra.Command{
-		Use:   "clean",
+		Use:   cleanCmdName,
 		Short: "Deletes branches which have Jira tickets in 'Done' state",
 		Args:  cobra.NoArgs,
 	}
 	cleanLocalCmd = &cobra.Command{
-		Use:   cmdLocal,
+		Use:   cleanLocalCmdName,
 		Short: "Deletes only local branches which have Jira tickets in 'Done' state",
 		Args:  cobra.NoArgs,
-		Run:   runClean,
+		Run: runClean,
 	}
 	cleanAllCmd = &cobra.Command{
-		Use:   cmdAll,
+		Use:   cleanAllCmdName,
 		Short: "Deletes remote and local branches which have Jira tickets in 'Done' state",
 		Args:  cobra.NoArgs,
-		Run:   runClean,
+		Run: runClean,
 	}
 )
 
@@ -127,7 +128,7 @@ func deleteBranchesIfAny(cmdName, remote string, statuses map[string]network.Iss
 		if status.Id == doneStatusId {
 			deleteLocalBranch(branchName)
 
-			if cmdName == cmdAll {
+			if cmdName == cleanAllCmdName {
 				deleteRemoteBranch(remote, branchName)
 			}
 

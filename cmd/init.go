@@ -13,8 +13,9 @@ import (
 )
 
 var (
+	InitCmdName = "init"
 	initCmd = &cobra.Command{
-		Use:   "init",
+		Use:   InitCmdName,
 		Short: "Create config",
 		Args:  cobra.NoArgs,
 		Run:   runInit,

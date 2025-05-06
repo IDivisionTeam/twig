@@ -13,10 +13,11 @@ import (
 )
 
 var (
-	branchType string
-	shouldPush bool
-	createCmd  = &cobra.Command{
-		Use:   "create",
+	branchType    string
+	shouldPush    bool
+	createCmdName = "create"
+	createCmd     = &cobra.Command{
+		Use:   createCmdName,
 		Short: "Create branch from Jira Issue",
 		Args:  cobra.MinimumNArgs(1),
 		Run:   runCreate,

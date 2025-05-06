@@ -105,7 +105,7 @@ func runClean(cmd *cobra.Command, args []string) {
 }
 
 func init() {
-	cleanCmd.Flags().StringVarP(
+	cleanCmd.PersistentFlags().StringVarP(
 		&assignee,
 		"assignee",
 		"a",

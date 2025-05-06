@@ -28,7 +28,7 @@ func init() {
 		"config",
 		"",
 		fmt.Sprintf(
-			"config file (default is ~%s/%s/%s)",
+			"config file (default is ~%s/%s.%s)",
 			config.Path,
 			config.Name,
 			config.Type,

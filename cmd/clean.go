@@ -20,6 +20,7 @@ import (
 const (
 	requestLimit    = 5
 	itemsPerRequest = 100
+	itemsThreshold = 5
 	doneStatusId    = 3
 	cmdAll          = "all"
 	cmdLocal        = "local"
@@ -165,7 +166,7 @@ func pairBranchesWithStatuses(client network.Client, issues map[string]string) (
 	statuses := make(map[string]network.IssueStatusCategory)
 
 	size := len(issues)
-	if size < itemsPerRequest {
+	if size <= itemsThreshold {
 		queryIssues(client, issues, statuses)
 	} else {
 		bulkQueryIssues(client, issues, statuses)

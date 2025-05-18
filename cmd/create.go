@@ -62,12 +62,19 @@ func runCreate(cmd *cobra.Command, args []string) {
 		logCmdFatal(err)
 	}
 
+	excludePhrases := config.GetStringArray(config.BranchExclude)
+	if len(excludePhrases) == 0 {
+		log.Warn().Println(fmt.Sprintf("%q is not set", config.FromToken(config.BranchExclude)))
+	}
+
 	bt, err := convertInputToBranchType()
 	if err != nil && branchType != "" {
 		logCmdFatal(err)
 	}
 
-	if bt == branch.NULL {
+	b := branch.New(bt, excludePhrases)
+
+	if b.Type == branch.NULL {
 		jiraIssueTypes, err := api.GetJiraIssueTypes()
 		if err != nil {
 			logCmdFatal(err)
@@ -77,14 +84,11 @@ func runCreate(cmd *cobra.Command, args []string) {
 		if err != nil {
 			logCmdFatal(err)
 		}
+
+		b.Type = bt
 	}
 
-	excludePhrases := config.GetStringArray(config.BranchExclude)
-	if len(excludePhrases) == 0 {
-		log.Warn().Println(fmt.Sprintf("%q is not set", config.FromToken(config.BranchExclude)))
-	}
-
-	branchName := branch.BuildName(bt, *jiraIssue, excludePhrases)
+	branchName := b.BuildName(*jiraIssue)
 	hasBranch := common.HasBranch(branchName)
 
 	checkoutCommand, err := common.Checkout(branchName, hasBranch)

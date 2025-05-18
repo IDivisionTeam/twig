@@ -291,11 +291,12 @@ func validateJiraIssue(issueKey, email, assignee string) error {
 func pairBranchesWithIssues(rawBranches string) (map[string]string, error) {
 	localBranches := strings.Split(rawBranches, "\n")
 	issues := make(map[string]string)
+	b := branch.New(branch.NULL, nil)
 
 	for _, localBranch := range localBranches {
 		trimmedBranchName := strings.Join(strings.Fields(localBranch), "")
 
-		issue, err := branch.ExtractIssueNameFromBranch(trimmedBranchName)
+		issue, err := b.ExtractIssueNameFromBranch(trimmedBranchName)
 		if err != nil || issue == "" {
 			continue
 		}

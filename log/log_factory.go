@@ -58,6 +58,20 @@ func (rp *RecorderPool) createRecorders() {
     rp.recorders[FatalLevel] = newFatalRecorder()
 }
 
+func CreateNoOpTestRecorders() {
+    rp.createNoOpRecorders()
+}
+
+func (rp *RecorderPool) createNoOpRecorders() {
+    recorder := new(noOpTwigRecorder)
+    rp.recorders[DebugLevel] = recorder
+    rp.recorders[InfoLevel] = recorder
+    rp.recorders[WarnLevel] = recorder
+    rp.recorders[ErrorLevel] = recorder
+    rp.recorders[PanicLevel] = recorder
+    rp.recorders[FatalLevel] = recorder
+}
+
 func newDebugRecorder() Recorder {
     if rp.minLogLevel <= DebugLevel {
         return &TwigRecorder{

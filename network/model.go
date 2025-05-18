@@ -5,6 +5,13 @@ const (
     BearerType = "bearer"
 )
 
+type jiraCredentials struct {
+    host  string
+    auth  string
+    email string
+    token string
+}
+
 type JiraIssues struct {
     Issues []JiraIssue `json:"issues"`
 }

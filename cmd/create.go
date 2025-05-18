@@ -45,14 +45,15 @@ func runCreate(cmd *cobra.Command, args []string) {
 	log.Debug().Println("create: executing command")
 
 	httpClient := &http.Client{}
-	client := network.NewClient(httpClient)
+	client := network.NewHttpClient(httpClient)
+	api:= network.NewJiraApi(client)
 	issue := args[0]
 
 	if err := validateIssue(issue); err != nil {
 		logCmdFatal(err)
 	}
 
-	jiraIssue, err := client.GetJiraIssue(issue)
+	jiraIssue, err := api.GetJiraIssue(issue)
 	if err != nil {
 		logCmdFatal(err)
 	}
@@ -67,7 +68,7 @@ func runCreate(cmd *cobra.Command, args []string) {
 	}
 
 	if bt == branch.NULL {
-		jiraIssueTypes, err := client.GetJiraIssueTypes()
+		jiraIssueTypes, err := api.GetJiraIssueTypes()
 		if err != nil {
 			logCmdFatal(err)
 		}

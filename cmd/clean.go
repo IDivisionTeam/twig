@@ -54,7 +54,8 @@ func runClean(cmd *cobra.Command, args []string) {
 	log.Debug().Println("clean: executing command")
 
 	httpClient := &http.Client{}
-	client := network.NewClient(httpClient)
+	client := network.NewHttpClient(httpClient)
+	api := network.NewJiraApi(client)
 
 	fetchCommand, err := common.ExecuteFetchPrune()
 	if err != nil {
@@ -91,7 +92,7 @@ func runClean(cmd *cobra.Command, args []string) {
 		logCmdFatal(err)
 	}
 
-	statuses, err := pairBranchesWithStatuses(client, issues)
+	statuses, err := pairBranchesWithStatuses(api, issues)
 	if err != nil {
 		logCmdFatal(err)
 	}
@@ -163,14 +164,14 @@ func deleteRemoteBranch(remote, branchName string) {
 	}
 }
 
-func pairBranchesWithStatuses(client network.Client, issues map[string]string) (map[string]network.IssueStatusCategory, error) {
+func pairBranchesWithStatuses(api network.JiraApi, issues map[string]string) (map[string]network.IssueStatusCategory, error) {
 	statuses := make(map[string]network.IssueStatusCategory)
 
 	size := len(issues)
 	if size <= itemsThreshold {
-		queryIssues(client, issues, statuses)
+		queryIssues(api, issues, statuses)
 	} else {
-		bulkQueryIssues(client, issues, statuses)
+		bulkQueryIssues(api, issues, statuses)
 	}
 
 	if len(statuses) == 0 {
@@ -180,11 +181,11 @@ func pairBranchesWithStatuses(client network.Client, issues map[string]string) (
 	return statuses, nil
 }
 
-func queryIssues(client network.Client, issues map[string]string, statuses map[string]network.IssueStatusCategory) {
+func queryIssues(api network.JiraApi, issues map[string]string, statuses map[string]network.IssueStatusCategory) {
 	hasAssignee := assignee != ""
 
 	for localBranch, issue := range issues {
-		jiraIssue, err := client.GetJiraIssueStatus(issue, hasAssignee)
+		jiraIssue, err := api.GetJiraIssueStatus(issue, hasAssignee)
 
 		if err != nil {
 			log.Debug().Println(fmt.Sprintf("Branch with status %s", err.Error()))
@@ -205,7 +206,7 @@ func queryIssues(client network.Client, issues map[string]string, statuses map[s
 	}
 }
 
-func bulkQueryIssues(client network.Client, issues map[string]string, statuses map[string]network.IssueStatusCategory) {
+func bulkQueryIssues(api network.JiraApi, issues map[string]string, statuses map[string]network.IssueStatusCategory) {
 	hasAssignee := assignee != ""
 	size := len(issues)
 
@@ -219,7 +220,7 @@ func bulkQueryIssues(client network.Client, issues map[string]string, statuses m
 	for i := 0; i < attemptsNeeded; i++ {
 		go func(batch int) {
 			mu.Lock()
-			jiraIssues = append(jiraIssues, getJiraIssueStatusBulk(batch, client, values, hasAssignee)...)
+			jiraIssues = append(jiraIssues, getJiraIssueStatusBulk(batch, api, values, hasAssignee)...)
 			mu.Unlock()
 
 			wg.Done()
@@ -250,7 +251,7 @@ func bulkQueryIssues(client network.Client, issues map[string]string, statuses m
 	}
 }
 
-func getJiraIssueStatusBulk(batch int, client network.Client, values []string, hasAssignee bool) []network.JiraIssue {
+func getJiraIssueStatusBulk(batch int, api network.JiraApi, values []string, hasAssignee bool) []network.JiraIssue {
 	<-rate
 
 	size := len(values)
@@ -261,7 +262,7 @@ func getJiraIssueStatusBulk(batch int, client network.Client, values []string, h
 		end = size
 	}
 
-	jiraIssues, err := client.GetJiraIssueStatusBulk(values[start:end-1], hasAssignee)
+	jiraIssues, err := api.GetJiraIssueStatusBulk(values[start:end-1], hasAssignee)
 	if err != nil {
 		log.Debug().Println(fmt.Sprintf("Bulk issue: %s", err.Error()))
 	}

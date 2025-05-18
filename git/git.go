@@ -21,7 +21,6 @@ const directive = "git"
 // Git is a wrapper over exec.Command with command range restrictions.
 type Git struct {
 	name    string
-	command Cmd
 	arg     []string
 	Err     error
 }

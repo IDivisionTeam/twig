@@ -210,7 +210,7 @@ func bulkQueryIssues(api network.JiraApi, issues map[string]string, statuses map
 	hasAssignee := assignee != ""
 	size := len(issues)
 
-	jiraIssues := make([]network.JiraIssue, len(issues))
+	jiraIssues := make([]network.JiraIssue, 0)
 	values := slices.Collect(maps.Values(issues))
 	attemptsNeeded := calculateAttempts(size)
 

@@ -53,6 +53,8 @@ var (
 
 func init() {
 	cobra.OnInitialize(initConfig)
+	
+	log.CreateRecorders()
 
 	twigCmd.PersistentFlags().StringVar(
 		&cfgFile,

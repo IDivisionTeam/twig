@@ -4,7 +4,6 @@ import (
     "github.com/fatih/color"
     "log"
     "os"
-    "sync"
 )
 
 type Level int
@@ -18,131 +17,143 @@ const (
     FatalLevel
 )
 
-var currentMinLevel = InfoLevel
+var rp *RecorderPool
 
-func SetLevel(l Level) {
-    currentMinLevel = l
+type RecorderPool struct {
+    minLogLevel Level
+    recorders   map[Level]Recorder
 }
 
-var (
-    loggers = make(map[Level]Recorder)
-    once    sync.Once
-)
+func init() {
+    rp = New()
+}
 
-func createRecorders() {
-    loggers[DebugLevel] = newDebugRecorder()
-    loggers[InfoLevel] = newInfoRecorder()
-    loggers[WarnLevel] = newWarningRecorder()
-    loggers[ErrorLevel] = newErrorRecorder()
-    loggers[PanicLevel] = newPanicRecorder()
-    loggers[FatalLevel] = newFatalRecorder()
+func New() *RecorderPool {
+    rp := new(RecorderPool)
+
+    rp.minLogLevel = InfoLevel
+    rp.recorders = make(map[Level]Recorder)
+
+    return rp
+}
+
+func Reset() {
+    rp = New()
+}
+
+func SetLevel(l Level) {
+    rp.minLogLevel = l
+}
+
+func CreateRecorders() {
+    rp.createRecorders()
+}
+
+func (rp *RecorderPool) createRecorders() {
+    rp.recorders[DebugLevel] = newDebugRecorder()
+    rp.recorders[InfoLevel] = newInfoRecorder()
+    rp.recorders[WarnLevel] = newWarningRecorder()
+    rp.recorders[ErrorLevel] = newErrorRecorder()
+    rp.recorders[PanicLevel] = newPanicRecorder()
+    rp.recorders[FatalLevel] = newFatalRecorder()
 }
 
 func newDebugRecorder() Recorder {
-    if currentMinLevel <= DebugLevel {
+    if rp.minLogLevel <= DebugLevel {
         return &TwigRecorder{
             level:  DebugLevel,
             logger: log.New(os.Stdout, "", log.Lmsgprefix),
             color:  color.FgGreen,
         }
     }
-    return &noOpTwigRecorder{}
+    return new(noOpTwigRecorder)
 }
 
 func newInfoRecorder() Recorder {
-    if currentMinLevel <= InfoLevel {
+    if rp.minLogLevel <= InfoLevel {
         return &TwigRecorder{
             level:  InfoLevel,
             logger: log.New(os.Stdout, "", log.Lmsgprefix),
             color:  color.FgBlue,
         }
     }
-    return &noOpTwigRecorder{}
+    return new(noOpTwigRecorder)
 }
 
 func newWarningRecorder() Recorder {
-    if currentMinLevel <= WarnLevel {
+    if rp.minLogLevel <= WarnLevel {
         return &TwigRecorder{
             level:  WarnLevel,
             logger: log.New(os.Stdout, "", log.Lmsgprefix),
             color:  color.FgYellow,
         }
     }
-    return &noOpTwigRecorder{}
+    return new(noOpTwigRecorder)
 }
 
 func newErrorRecorder() Recorder {
-    if currentMinLevel <= ErrorLevel {
+    if rp.minLogLevel <= ErrorLevel {
         return &TwigRecorder{
             level:  ErrorLevel,
             logger: log.New(os.Stderr, "", log.Lmsgprefix),
             color:  color.FgRed,
         }
     }
-    return &noOpTwigRecorder{}
+    return new(noOpTwigRecorder)
 }
 
 func newPanicRecorder() Recorder {
-    if currentMinLevel <= PanicLevel {
+    if rp.minLogLevel <= PanicLevel {
         return &TwigExceptionRecorder{
             level:  PanicLevel,
             logger: log.New(os.Stderr, "", log.Lmsgprefix),
         }
     }
-    return &noOpTwigRecorder{}
+    return new(noOpTwigRecorder)
 }
 
 func newFatalRecorder() Recorder {
-    if currentMinLevel <= FatalLevel {
+    if rp.minLogLevel <= FatalLevel {
         return &TwigExceptionRecorder{
             level:  FatalLevel,
             logger: log.New(os.Stderr, "", log.Lmsgprefix),
         }
     }
-    return &noOpTwigRecorder{}
+    return new(noOpTwigRecorder)
 }
 
 func Print(l Level, v ...any) {
-    once.Do(createRecorders)
-    loggers[l].Print(v...)
+    rp.recorders[l].Print(v...)
 }
 
 func Printf(l Level, format string, v ...any) {
-    once.Do(createRecorders)
-    loggers[l].Printf(format, v...)
+    rp.recorders[l].Printf(format, v...)
 }
 
 func Println(l Level, v ...any) {
-    once.Do(createRecorders)
-    loggers[l].Println(v...)
+    rp.recorders[l].Println(v...)
 }
 
 func Debug() Recorder {
-    once.Do(createRecorders)
-    return loggers[DebugLevel]
+    return rp.recorders[DebugLevel]
 }
 
 func Info() Recorder {
-    once.Do(createRecorders)
-    return loggers[InfoLevel]
+    return rp.recorders[InfoLevel]
 }
 
 func Warn() Recorder {
-    once.Do(createRecorders)
-    return loggers[WarnLevel]
+    return rp.recorders[WarnLevel]
 }
 
 func Error() Recorder {
-    once.Do(createRecorders)
-    return loggers[ErrorLevel]
+    return rp.recorders[ErrorLevel]
 }
 
 func Panic() Recorder {
-    once.Do(createRecorders)
-    return loggers[PanicLevel]
+    return rp.recorders[PanicLevel]
 }
 
 func Fatal() Recorder {
-    once.Do(createRecorders)
-    return loggers[FatalLevel]
+    return rp.recorders[FatalLevel]
 }

@@ -14,12 +14,6 @@ import (
 //go:embed twig.toml
 var embededCfg []byte
 
-const (
-    Name = "twig"
-    Type = "toml"
-    Path = "/.config/twig"
-)
-
 type Token int
 
 const (
@@ -50,76 +44,95 @@ const (
 )
 
 type Config struct {
-    Project ProjectCfg `mapstructure:"project"`
-    Branch  BranchCfg  `mapstructure:"branch"`
-    Mapping MappingCfg `mapstructure:"mapping"`
+    manager *viper.Viper
+    name    string
+    ext     string
+    path    string
+    homeDir string
 }
 
-type ProjectCfg struct {
-    Host  string `mapstructure:"host"`
-    Auth  string `mapstructure:"auth"`
-    Email string `mapstructure:"email"`
-    Token string `mapstructure:"token"`
+var c *Config
+
+func init() {
+    c = New()
 }
 
-type BranchCfg struct {
-    Default string   `mapstructure:"default"`
-    Origin  string   `mapstructure:"origin"`
-    Exclude []string `mapstructure:"exclude"`
-}
+func New() *Config {
+    c := new(Config)
 
-type MappingCfg struct {
-    Build    []string `mapstructure:"build"`
-    Chore    []string `mapstructure:"chore"`
-    Ci       []string `mapstructure:"ci"`
-    Docs     []string `mapstructure:"docs"`
-    Feat     []string `mapstructure:"feat"`
-    Fix      []string `mapstructure:"fix"`
-    Pref     []string `mapstructure:"pref"`
-    Refactor []string `mapstructure:"refactor"`
-    Revert   []string `mapstructure:"revert"`
-    Style    []string `mapstructure:"style"`
-    Test     []string `mapstructure:"test"`
-}
+    c.manager = viper.GetViper()
+    c.name = "twig"
+    c.ext = "toml"
+    c.path = "/.config/twig"
 
-func overrideConfig() error {
-    if err := viper.WriteConfig(); err != nil {
-        return fmt.Errorf("failed to save config: %w", err)
+    dir, err := homedir.Dir()
+    if err != nil {
+        log.Fatal().Println(err.Error())
     }
-    return nil
+
+    c.homeDir = dir
+
+    return c
 }
 
 func SetString(token Token, value string) error {
-    viper.Set(FromToken(token), value)
-    return overrideConfig()
+    return c.SetString(token, value)
+}
+
+func (c *Config) SetString(token Token, value string) error {
+    key := FromToken(token)
+    c.manager.Set(key, value)
+
+    return c.overrideConfig()
 }
 
 func SetStringArray(token Token, value []string) error {
-    viper.Set(FromToken(token), value)
-    return overrideConfig()
+    return c.SetStringArray(token, value)
+}
+
+func (c *Config) SetStringArray(token Token, value []string) error {
+    key := FromToken(token)
+    c.manager.Set(key, value)
+
+    return c.overrideConfig()
 }
 
 func GetString(token Token) string {
-    return viper.GetString(FromToken(token))
+    return c.GetString(token)
+}
+
+func (c *Config) GetString(token Token) string {
+    key := FromToken(token)
+    return c.manager.GetString(key)
 }
 
 func GetStringArray(token Token) []string {
-    return viper.GetStringSlice(FromToken(token))
+    return c.GetStringArray(token)
+}
+
+func (c *Config) GetStringArray(token Token) []string {
+    key := FromToken(token)
+    return c.manager.GetStringSlice(key)
 }
 
 func GetStringMap(token Token) map[string][]string {
-    return viper.GetStringMapStringSlice(FromToken(token))
+    return c.GetStringMap(token)
 }
 
-func GetAll() map[string]any {
-    return viper.AllSettings()
+func (c *Config) GetStringMap(token Token) map[string][]string {
+    key := FromToken(token)
+    return c.manager.GetStringMapStringSlice(key)
 }
 
-func GetConfigSnapshot() (Config, error) {
-    var cfg Config
+func GetAllSnapshot() (*Settings, error) {
+    return c.GetAllSnapshot()
+}
 
-    if err := viper.UnmarshalExact(&cfg); err != nil {
-        return Config{}, fmt.Errorf("failed to get config snapshot: %w", err)
+func (c *Config) GetAllSnapshot() (*Settings, error) {
+    var cfg *Settings
+
+    if err := c.manager.UnmarshalExact(&cfg); err != nil {
+        return nil, fmt.Errorf("failed to get config snapshot: %w", err)
     }
 
     return cfg, nil
@@ -129,22 +142,17 @@ func InitConfig(file string) {
     if file != "" {
         log.Debug().Println("Using custom config")
 
-        viper.SetConfigFile(file)
-        viper.SetConfigType(Type)
+        c.manager.SetConfigFile(file)
+        c.manager.SetConfigType(c.ext)
     } else {
         log.Debug().Println("Using default config")
 
-        home, err := homedir.Dir()
-        if err != nil {
-            log.Fatal().Println(err)
-        }
-
-        viper.AddConfigPath(home + Path)
-        viper.SetConfigName(Name)
-        viper.SetConfigType(Type)
+        c.manager.AddConfigPath(c.homeDir + c.path)
+        c.manager.SetConfigName(c.name)
+        c.manager.SetConfigType(c.ext)
     }
 
-    if err := viper.ReadInConfig(); err != nil {
+    if err := c.manager.ReadInConfig(); err != nil {
         log.Fatal().Println(err)
     }
 
@@ -152,15 +160,10 @@ func InitConfig(file string) {
 }
 
 func IsConfigExist() error {
-    home, err := homedir.Dir()
-    if err != nil {
-        log.Fatal().Println(err)
-    }
+    fileName := fmt.Sprintf("%s.%s", c.name, c.ext)
+    path := filepath.Join(c.homeDir, c.path, fileName)
 
-    fileName := fmt.Sprintf("%s.%s", Name, Type)
-    path := filepath.Join(home, Path, fileName)
-
-    _, err = os.Stat(path)
+    _, err := os.Stat(path)
 
     if err == nil || os.IsExist(err) {
         return errors.New("config exist, abort")
@@ -169,13 +172,8 @@ func IsConfigExist() error {
 }
 
 func CreateConfigDir() error {
-    home, err := homedir.Dir()
-    if err != nil {
-        log.Fatal().Println(err)
-    }
-
-    path := filepath.Join(home, Path)
-    err = os.MkdirAll(path, os.ModeDir)
+    path := filepath.Join(c.homeDir, c.path)
+    err := os.MkdirAll(path, os.ModeDir)
 
     if err == nil || os.IsExist(err) {
         return nil
@@ -185,13 +183,8 @@ func CreateConfigDir() error {
 }
 
 func CreatConfigFile() error {
-    home, err := homedir.Dir()
-    if err != nil {
-        log.Fatal().Println(err)
-    }
-
-    fileName := fmt.Sprintf("%s.%s", Name, Type)
-    path := filepath.Join(home, Path, fileName)
+    fileName := fmt.Sprintf("%s.%s", c.name, c.ext)
+    path := filepath.Join(c.homeDir, c.path, fileName)
 
     file, err := os.Create(path)
     if err != nil {
@@ -207,6 +200,22 @@ func CreatConfigFile() error {
         return err
     }
 
+    return nil
+}
+
+func GetDefaultConfigPath() string {
+    return fmt.Sprintf(
+        "%s/%s.%s",
+        c.path,
+        c.name,
+        c.ext,
+    )
+}
+
+func (c *Config) overrideConfig() error {
+    if err := c.manager.WriteConfig(); err != nil {
+        return fmt.Errorf("failed to save config: %w", err)
+    }
     return nil
 }
 

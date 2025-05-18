@@ -19,7 +19,7 @@ var (
 		Short: "List all variables set in config file, along with their values",
 		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
-			cfg, err := config.GetConfigSnapshot()
+			cfg, err := config.GetAllSnapshot()
 			if err != nil {
 				logCmdFatal(err)
 			}

@@ -127,7 +127,7 @@ mv twig /usr/local/bin
 ## Usage
 
 ```
-twig [-h | --help] [-v | --version] [--config]
+twig [-h | --help] [-v | --version] [--config <path>]
 ```
 
 ### twig-help
@@ -165,7 +165,7 @@ twig init
 ### twig-create
 
 ```
-twig create <issue-key> [-p | --push] [-t | --type]
+twig create <issue-key> [-p | --push] [-t <type> | --type <type>]
 ```
 
 Creates the branch using Jira Issue Key as prefix after branch type.
@@ -203,8 +203,8 @@ twig create XX-111
 ### twig-clean
 
 ```
-twig clean local
-twig clean all [-a | --assignee]
+twig clean local [-a <assignee> | --assignee <assignee>] [--any]
+twig clean all [-a <assignee> | --assignee <assignee>] [--any]
 ```
 
 Deletes branches which have Jira tickets in 'Done' state.<br/>
@@ -213,7 +213,10 @@ Note: Remote branches can only be deleted if a corresponding local branch exists
 #### Options
 
 `-a` <br/>
-`--assignee` - (optional) Specifies the username (from the email) to verify that the Jira issue is assigned to you before permitting remote branch deletion. Use your Jira email, which might match `project.email`, e.g., `example.user@example.com`.
+`--assignee` - (optional) Specifies the username (from the email) to verify that the Jira issue matches the provided assignee before allowing remote or local branch deletion. Defaults to `project.email` username from the configuration file.
+
+`--any` - (optional) Allows you to bypass assignee verification to check whether the Jira issue is assigned before permitting remote or local branch deletion.<br/>
+Note: the `assignee` option is disregarded when this flag is used.
 
 #### Examples
 
@@ -271,4 +274,9 @@ func BuildName(bt Type, jiraIssue network.JiraIssue, excludePhrases string) stri
 ~% twig clean all --assignee example.user
 ~% branch deleted: fix/XX-111_jira-issue-name
 ~% remote branch deleted: origin/fix/XX-111_jira-issue-name
+```
+
+```
+~% twig clean local --any
+~% branch deleted: fix/XX-111_jira-issue-name
 ```

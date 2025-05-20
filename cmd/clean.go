@@ -344,7 +344,7 @@ func pairBranchesWithIssues(rawBranches string) (map[string]string, error) {
 	}
 
 	if len(issues) == 0 {
-		return nil, fmt.Errorf("pair branch with issue: no relation to Jira issues found")
+		return nil, fmt.Errorf("no branches related to Jira issues were found")
 	}
 
 	return issues, nil

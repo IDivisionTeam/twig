@@ -21,17 +21,18 @@ const (
 	requestLimit      = 5
 	itemsPerRequest   = 100
 	itemsThreshold    = 5
-	doneStatusId    = 3
+	doneStatusId      = 3
 	cleanCmdName      = "clean"
 	cleanAllCmdName   = "all"
 	cleanLocalCmdName = "local"
 )
 
 var (
-	rate     = time.Tick(time.Second / time.Duration(requestLimit))
-	mu       sync.Mutex
-	assignee string
-	cleanCmd = &cobra.Command{
+	rate           = time.Tick(time.Second / time.Duration(requestLimit))
+	mu             sync.Mutex
+	assignee       string
+	ignoreAssignee bool
+	cleanCmd       = &cobra.Command{
 		Use:   cleanCmdName,
 		Short: "Deletes branches which have Jira tickets in 'Done' state",
 		Args:  cobra.NoArgs,
@@ -40,18 +41,35 @@ var (
 		Use:   cleanLocalCmdName,
 		Short: "Deletes only local branches which have Jira tickets in 'Done' state",
 		Args:  cobra.NoArgs,
-		Run: runClean,
+		Run:   runClean,
 	}
 	cleanAllCmd = &cobra.Command{
 		Use:   cleanAllCmdName,
 		Short: "Deletes remote and local branches which have Jira tickets in 'Done' state",
 		Args:  cobra.NoArgs,
-		Run: runClean,
+		Run:   runClean,
 	}
 )
 
 func runClean(cmd *cobra.Command, args []string) {
 	log.Debug().Println("clean: executing command")
+
+	email := config.GetString(config.ProjectEmail)
+	emailTokenName := config.FromToken(config.ProjectEmail)
+
+	username, err := common.ExtractUsernameFromEmail(email)
+	if err != nil {
+		we := fmt.Errorf(
+			"config: %q %w",
+			emailTokenName,
+			err,
+		)
+		logCmdFatal(we)
+	}
+
+	if assignee == "" {
+		assignee = username
+	}
 
 	httpClient := &http.Client{}
 	client := network.NewHttpClient(httpClient)
@@ -92,28 +110,40 @@ func runClean(cmd *cobra.Command, args []string) {
 		logCmdFatal(err)
 	}
 
-	statuses, err := pairBranchesWithStatuses(api, issues)
-	if err != nil {
-		logCmdFatal(err)
-	}
-
 	remote := config.GetString(config.BranchOrigin)
 	if remote == "" {
 		logCmdFatal(fmt.Errorf("%q is not set", config.BranchOrigin))
 	}
 
-	if err := deleteBranchesIfAny(cmd.Name(), remote, statuses); err != nil {
-		logCmdFatal(err)
+	statuses, err := pairBranchesWithStatuses(api, issues)
+	if err != nil {
+		log.Debug().Println(fmt.Sprintf("No issues, %s", err.Error()))
+	}
+
+	if err = deleteBranchesIfAny(cmd.Name(), remote, statuses); err != nil {
+		log.Warn().Println(fmt.Sprintf("Hmm.. %s", err.Error()))
 	}
 }
 
 func init() {
+	emailTokenName := config.FromToken(config.ProjectEmail)
+
 	cleanCmd.PersistentFlags().StringVarP(
 		&assignee,
 		"assignee",
 		"a",
 		"",
-		"(optional) provides assignee to delete branch",
+		fmt.Sprintf(
+			"(optional) overrides the assignee used when comparing before deleting the branch, default is username from %s",
+			emailTokenName,
+		),
+	)
+
+	cleanCmd.PersistentFlags().BoolVar(
+		&ignoreAssignee,
+		"any",
+		false,
+		"(optional) delete branch while ignoring the assignee; the 'assignee' option is disregarded when this flag is used",
 	)
 
 	cleanCmd.AddCommand(
@@ -138,7 +168,7 @@ func deleteBranchesIfAny(cmdName, remote string, statuses map[string]network.Iss
 	}
 
 	if !anyInDoneStatus {
-		return errors.New("no associated Jira issues in DONE status")
+		return fmt.Errorf("no associated Jira issues in DONE status where assignee is %q", assignee)
 	}
 
 	return nil
@@ -175,28 +205,31 @@ func pairBranchesWithStatuses(api network.JiraApi, issues map[string]string) (ma
 	}
 
 	if len(statuses) == 0 {
-		return nil, errors.New("no Jira issues match")
+		return nil, errors.New("nothing to clean")
 	}
 
 	return statuses, nil
 }
 
 func queryIssues(api network.JiraApi, issues map[string]string, statuses map[string]network.IssueStatusCategory) {
-	hasAssignee := assignee != ""
-
 	for localBranch, issue := range issues {
-		jiraIssue, err := api.GetJiraIssueStatus(issue, hasAssignee)
-
+		jiraIssue, err := api.GetJiraIssueStatus(issue, !ignoreAssignee)
 		if err != nil {
 			log.Debug().Println(fmt.Sprintf("Branch with status %s", err.Error()))
 			continue
 		}
 
-		if hasAssignee {
+		hasJiraAssignee := jiraIssue.Fields.Assignee != nil
+		if !ignoreAssignee {
+			if !hasJiraAssignee {
+				log.Debug().Println(fmt.Sprintf("Issue %q is unassingned, skip", jiraIssue.Key))
+				continue
+			}
+
 			email := jiraIssue.Fields.Assignee.Email
 
 			if err = validateJiraIssue(jiraIssue.Key, email, assignee); err != nil {
-				log.Debug().Println(fmt.Sprintf("Validae issue: %s", err.Error()))
+				log.Debug().Println(err.Error())
 				continue
 			}
 		}
@@ -207,7 +240,6 @@ func queryIssues(api network.JiraApi, issues map[string]string, statuses map[str
 }
 
 func bulkQueryIssues(api network.JiraApi, issues map[string]string, statuses map[string]network.IssueStatusCategory) {
-	hasAssignee := assignee != ""
 	size := len(issues)
 
 	jiraIssues := make([]network.JiraIssue, 0)
@@ -220,7 +252,7 @@ func bulkQueryIssues(api network.JiraApi, issues map[string]string, statuses map
 	for i := 0; i < attemptsNeeded; i++ {
 		go func(batch int) {
 			mu.Lock()
-			jiraIssues = append(jiraIssues, getJiraIssueStatusBulk(batch, api, values, hasAssignee)...)
+			jiraIssues = append(jiraIssues, getJiraIssueStatusBulk(batch, api, values, !ignoreAssignee)...)
 			mu.Unlock()
 
 			wg.Done()
@@ -237,11 +269,17 @@ func bulkQueryIssues(api network.JiraApi, issues map[string]string, statuses map
 	for localBranch, issue := range issues {
 		jiraIssue := jiraKeyToIssueMap[issue]
 
-		if hasAssignee {
+		hasJiraAssignee := jiraIssue.Fields.Assignee != nil
+		if !ignoreAssignee {
+			if !hasJiraAssignee {
+				log.Debug().Println(fmt.Sprintf("Issue %q is unassingned, skip", jiraIssue.Key))
+				continue
+			}
+
 			email := jiraIssue.Fields.Assignee.Email
 
 			if err := validateJiraIssue(jiraIssue.Key, email, assignee); err != nil {
-				log.Debug().Println(fmt.Sprintf("Validate issue: %s", err.Error()))
+				log.Debug().Println(err.Error())
 				continue
 			}
 		}
@@ -275,13 +313,13 @@ func calculateAttempts(size int) int {
 }
 
 func validateJiraIssue(issueKey, email, assignee string) error {
-	at := strings.Index(email, "@")
-	if at == -1 {
-		return fmt.Errorf("validate: email %q pulled from Jira issue is either invalid or corrupted", email)
+	username, err := common.ExtractUsernameFromEmail(email)
+	if err != nil {
+		return fmt.Errorf("validate: %w", err)
 	}
 
-	username := strings.TrimSpace(email[:at])
-	if assignee != username {
+	formattedAssignee := strings.TrimSpace(assignee)
+	if formattedAssignee != username {
 		return fmt.Errorf("validate: issue %q has assignee %q but looking for %q", issueKey, username, assignee)
 	}
 

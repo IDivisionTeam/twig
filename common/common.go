@@ -4,6 +4,7 @@ import (
     "errors"
     "fmt"
     "slices"
+    "strings"
     "twig/git"
     "twig/log"
 )
@@ -111,4 +112,13 @@ func PushToRemote(branchName string, remote string) (string, error) {
     }
 
     return string(out), nil
+}
+
+func ExtractUsernameFromEmail(email string) (string, error) {
+    at := strings.Index(email, "@")
+    if at == -1 {
+        return "", fmt.Errorf("email %q is either invalid or corrupted", email)
+    }
+
+    return strings.TrimSpace(email[:at]), nil
 }

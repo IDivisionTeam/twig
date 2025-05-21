@@ -116,6 +116,9 @@ cp twig.toml ~/.config/twig/
 
 ```
 go build
+
+# or produce a smaller binary with ldflags
+go build -ldflags="-s -w"
 ```
 
 7. Move the executable into `/usr/local/bin` for easy global access.

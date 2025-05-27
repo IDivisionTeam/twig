@@ -1,4 +1,4 @@
-# twig ![tests](https://github.com/yaroslav-android/twig/actions/workflows/go.yml/badge.svg)
+# twig ![tests](https://github.com/yaroslav-android/twig/actions/workflows/ci.yml/badge.svg)
 
 <br/>
 

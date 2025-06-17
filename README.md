@@ -7,10 +7,11 @@
 - [Features](#features)
 - [Installation](#installation)
 - [Usage](#usage)
+    - [twig-clean](#twig-clean)
+    - [twig-config](#twig-config)
+    - [twig-create](#twig-create)
     - [twig-help](#twig-help)
     - [twig-init](#twig-init)
-    - [twig-create](#twig-create)
-    - [twig-clean](#twig-clean)
 - [Configuration](#configuration)
 - [More Examples](#more-examples)
 
@@ -133,34 +134,55 @@ mv twig /usr/local/bin
 twig [-h | --help] [-v | --version] [--config <path>]
 ```
 
-### twig-help
+### twig-clean
 
 ```
-twig help <command>
+twig clean local [-a <assignee> | --assignee <assignee>] [--any]
+twig clean all [-a <assignee> | --assignee <assignee>] [--any]
 ```
 
-Displays help information for all available commands and options in the CLI tool providing usage instructions and examples. Use this command to understand how to use the tool effectively.
+Deletes branches which have Jira tickets in 'Done' state.<br/>
+Note: Remote branches can only be deleted if a corresponding local branch exists.
+
+#### Options
+
+`-a` <br/>
+`--assignee` - (optional) Specifies the username (from the email) to verify that the Jira issue matches the provided assignee before allowing remote or local branch deletion. Defaults to `project.email` username from the configuration file.
+
+`--any` - (optional) Allows you to bypass assignee verification to check whether the Jira issue is assigned before permitting remote or local branch deletion.<br/>
+Note: the `assignee` option is disregarded when this flag is used.
 
 #### Examples
 
 ```terminal
-twig help create
+twig clean local
+```
+```terminal
+twig clean all -a example.user
 ```
 
 <br/>
 
-### twig-init
+### twig-config
 
 ```
-twig init
+twig config list
+twig config get <name>
+twig config set <name> <value>
 ```
 
-Creates a config file and folders (if they don't exist), prompts you with questions to set up the configuration interactively.
+You can query/set/replace options with this command. The name is the section and the key separated by a dot.
 
 #### Examples
 
 ```terminal
-twig init
+twig config list
+```
+```terminal
+twig config get project.token
+```
+```terminal
+twig config set project.token pat_n7rt64i
 ```
 
 <br/>
@@ -203,34 +225,35 @@ twig create XX-111
 
 <br/>
 
-### twig-clean
+### twig-help
 
 ```
-twig clean local [-a <assignee> | --assignee <assignee>] [--any]
-twig clean all [-a <assignee> | --assignee <assignee>] [--any]
+twig help <command>
 ```
 
-Deletes branches which have Jira tickets in 'Done' state.<br/>
-Note: Remote branches can only be deleted if a corresponding local branch exists.
-
-#### Options
-
-`-a` <br/>
-`--assignee` - (optional) Specifies the username (from the email) to verify that the Jira issue matches the provided assignee before allowing remote or local branch deletion. Defaults to `project.email` username from the configuration file.
-
-`--any` - (optional) Allows you to bypass assignee verification to check whether the Jira issue is assigned before permitting remote or local branch deletion.<br/>
-Note: the `assignee` option is disregarded when this flag is used.
+Displays help information for all available commands and options in the CLI tool providing usage instructions and examples. Use this command to understand how to use the tool effectively.
 
 #### Examples
 
-```
-twig clean local
-```
-```
-twig clean all -a example.user
+```terminal
+twig help create
 ```
 
 <br/>
+
+### twig-init
+
+```
+twig init
+```
+
+Creates a config file and folders (if they don't exist), prompts you with questions to set up the configuration interactively.
+
+#### Examples
+
+```terminal
+twig init
+```
 
 ## Configuration
 

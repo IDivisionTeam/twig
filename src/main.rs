@@ -1,7 +1,7 @@
-use clap::Parser;
+mod cmd;
 
-#[derive(Parser, Debug)]
-#[command(version, about, long_about = None)]
-struct Args {}
+use cmd::twig;
 
-fn main() {}
+fn main() {
+    twig::execute()
+}

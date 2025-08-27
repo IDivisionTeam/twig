@@ -2,7 +2,12 @@
 name = "twig"
 version = "2.0.0-alpha01"
 authors = ["IDivisionTeam", "idivision.developer@gmail.com"]
-edition = "2021"
+edition = "2024"
 
 [dependencies]
-clap = { version = "4.5.38", features = ["cargo", "color"] }
+clap = { version = "4.5.39", features = ["cargo", "color"] }
+config = { version = "0.15.11", features = ["toml"] }
+serde = { version = "1.0.219", features = ["derive", "alloc"] }
+serde_json = "1.0.141"
+reqwest = { version = "0.12.22", features = ["json"] }
+tokio = { version = "1.46.1", features = ["full"] }

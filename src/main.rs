@@ -1,8 +1,9 @@
 mod cmd;
 mod network;
 
+use anyhow::Result;
 use cmd::twig;
 
-fn main() {
+fn main() -> Result<()> {
     twig::execute()
 }

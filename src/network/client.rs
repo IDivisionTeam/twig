@@ -1,36 +1,49 @@
-use crate::network::model::{Credentials, AUTH_BASIC, AUTH_BEARER};
-use base64::engine::general_purpose;
+use crate::network::model::{AUTH_BASIC, AUTH_BEARER, Credentials};
+use anyhow::{Context, Result};
 use base64::Engine;
-use reqwest::{header, Client, ClientBuilder, Method, RequestBuilder};
+use base64::engine::general_purpose;
+use reqwest::blocking::{Client, ClientBuilder, RequestBuilder};
+use reqwest::{Method, header};
+use serde::Serialize;
+use serde::de::DeserializeOwned;
 
 pub struct TwigClient {
-    creds: Credentials,
+    host: String,
     client: Client,
 }
 
 impl TwigClient {
-    pub fn new(credentials: Credentials) -> Self {
+    pub fn new(credentials: Credentials) -> Result<Self> {
         let mut builder = Client::builder();
-
         builder = configure_headers(builder, &credentials);
 
-        Self {
-            creds: credentials,
-            client: builder.build().unwrap_or(Default::default()),
-        }
+        let host = format!("https://{host}/rest/api/2", host = credentials.host);
+        let client = builder.build().context("failed to build client")?;
+        Ok(Self { host, client })
     }
 
-    pub fn send() {
-        // TODO: impl
+    pub fn get<T: DeserializeOwned>(&self, path: &str, params: Vec<(&str, &str)>) -> Result<T> {
+        let response = self
+            .request(Method::GET, path)
+            .query(&params)
+            .send()?
+            .error_for_status()
+            .context("failed to send GET request")?;
+        response.json::<T>().context("failed to parse GET response")
     }
 
-    fn prepare(self: &Self, method: Method, path: String) -> RequestBuilder {
-        let url = format!(
-            "https://{host}/rest/api/2/{path}",
-            host = self.creds.host,
-            path = path
-        );
+    pub fn post<T: DeserializeOwned, S: Serialize>(&self, path: &str, body: S) -> Result<T> {
+        let response = self
+            .request(Method::POST, path)
+            .json(&body)
+            .send()?
+            .error_for_status()
+            .context("failed to send POST request")?;
+        response.json::<T>().context("failed to parse POST response")
+    }
 
+    fn request(self: &Self, method: Method, path: &str) -> RequestBuilder {
+        let url = format!("{host}/{path}", host = self.host, path = path);
         self.client.request(method, url)
     }
 }

@@ -23,10 +23,9 @@ pub struct JiraIssueFields {
     #[serde(rename = "issuetype", skip_serializing_if = "Option::is_none")]
     issue_type: Option<JiraIssueType>,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")] // Для чого skip_serializing_if?
     summary: Option<String>,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
     status: Option<JiraIssueStatus>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -46,8 +45,23 @@ pub struct JiraIssueStatus {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct JiraIssueStatusFields {
+    status: JiraIssueStatus,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct JiraIssueStatusObject {
+    fields: JiraIssueStatusFields,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct JiraIssueStatusBulkResponse {
+    issues: Vec<JiraIssueStatusObject>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct JiraIssueStatusCategory {
-    id: String,
+    id: i64,
 
     #[serde(rename = "key")]
     name: String,
@@ -61,10 +75,10 @@ pub struct JiraIssueAssignee {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct JiraIssueBulkRequest {
-    fields: Vec<String>,
+    pub fields: Vec<String>,
 
     #[serde(rename = "issueIdsOrKeys")]
-    issue_keys: Vec<String>,
+    pub issue_keys: Vec<String>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

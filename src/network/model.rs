@@ -5,13 +5,13 @@ pub const AUTH_BEARER: &str = "bearer";
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct JiraIssues {
+pub struct JiraIssues {
     issues: Vec<JiraIssue>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct JiraIssue {
+pub struct JiraIssue {
     id: String,
     key: String,
     fields: JiraIssueFields,
@@ -19,7 +19,7 @@ struct JiraIssue {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct JiraIssueFields {
+pub struct JiraIssueFields {
     #[serde(rename = "issuetype", skip_serializing_if = "Option::is_none")]
     issue_type: Option<JiraIssueType>,
 
@@ -34,19 +34,19 @@ struct JiraIssueFields {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-struct JiraIssueType {
+pub struct JiraIssueType {
     id: String,
     name: String,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-struct JiraIssueStatus {
+pub struct JiraIssueStatus {
     #[serde(rename = "statusCategory")]
     category: JiraIssueStatusCategory,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-struct JiraIssueStatusCategory {
+pub struct JiraIssueStatusCategory {
     id: String,
 
     #[serde(rename = "key")]
@@ -54,13 +54,13 @@ struct JiraIssueStatusCategory {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-struct JiraIssueAssignee {
+pub struct JiraIssueAssignee {
     #[serde(rename = "emailAddress")]
     email: String,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-struct JiraIssueBulkRequest {
+pub struct JiraIssueBulkRequest {
     fields: Vec<String>,
 
     #[serde(rename = "issueIdsOrKeys")]
@@ -68,7 +68,14 @@ struct JiraIssueBulkRequest {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-struct JiraError {
+pub struct JiraError {
     #[serde(rename = "errorMessages")]
     messages: Option<Vec<String>>,
+}
+
+pub struct Credentials {
+    pub host: String,
+    pub auth: String,
+    pub email: String,
+    pub token: String,
 }

@@ -1,7 +1,12 @@
-use clap::Command;
+use anyhow::Result;
+use clap::{Args, Command};
 
-pub const NAME: &str = "init";
+use crate::network::api::JiraApi;
 
-pub fn subcommand() -> Command {
-    Command::new(NAME)
+#[derive(Args)]
+pub struct Init;
+
+pub fn handle(jira_api: &JiraApi, args: &Init) -> Result<()> {
+    todo!();
+    Ok(())
 }

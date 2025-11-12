@@ -1,26 +1,19 @@
-use clap::{value_parser, Arg, Command};
+use anyhow::Result;
+use clap::{Arg, Args, Command};
 
-pub const NAME: &str = "clean";
+use crate::network::api::JiraApi;
 
-pub fn subcommand() -> Command {
-    Command::new(NAME)
-        .subcommand(Command::new("all").args(clean_common_args()))
-        .subcommand(Command::new("local").args(clean_common_args()))
+#[derive(Args)]
+pub struct Clean {
+    #[arg(short, long)]
+    assignee: Option<String>,
+
+    #[arg(short, long, default_value_t = false)]
+    any: bool,
 }
 
-fn clean_common_args() -> Vec<Arg> {
-    vec![
-        Arg::new("assignee")
-            .long("assignee")
-            .short('a')
-            .num_args(1)
-            .value_parser(value_parser!(String))
-            .default_value(""),
-        Arg::new("any")
-            .long("any")
-            .num_args(0)
-            .value_parser(value_parser!(bool))
-            .default_missing_value("false")
-            .default_value("false"),
-    ]
+// FIXME: assignee must default to project.email.
+pub fn handle(jira_api: &JiraApi, args: &Clean) -> Result<()> {
+    todo!();
+    Ok(())
 }

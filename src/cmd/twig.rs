@@ -1,6 +1,5 @@
 use anyhow::Result;
-use clap::builder::Styles;
-use clap::{Command, Parser, Subcommand, command};
+use clap::{Parser, Subcommand, command};
 
 use crate::cmd::{cfg, clean, create, init};
 use crate::network;

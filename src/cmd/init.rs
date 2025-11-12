@@ -1,5 +1,5 @@
 use anyhow::Result;
-use clap::{Args, Command};
+use clap::Args;
 
 use crate::network::api::JiraApi;
 

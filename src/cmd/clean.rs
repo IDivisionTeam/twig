@@ -8,7 +8,7 @@ pub struct Clean {
     #[arg(short, long)]
     assignee: Option<String>,
 
-    #[arg(short, long, default_value_t = false)]
+    #[arg(long, default_value_t = false)]
     any: bool,
 }
 

@@ -1,31 +1,21 @@
-use clap::{value_parser, Arg, Command};
-use clap::builder::NonEmptyStringValueParser;
+use anyhow::Result;
+use clap::Args;
 
-pub const NAME: &str = "create";
+use crate::network::api::JiraApi;
 
-pub fn subcommand() -> Command {
-    Command::new(NAME)
-        .arg(
-            Arg::new("issue")
-                .num_args(1)
-                .required(true)
-                .value_parser(NonEmptyStringValueParser::new()),
-        )
-        .arg(
-            Arg::new("type")
-                .long("type")
-                .short('t')
-                .num_args(1)
-                .value_parser(value_parser!(String))
-                .default_value(""),
-        )
-        .arg(
-            Arg::new("push")
-                .long("push")
-                .short('p')
-                .num_args(0)
-                .value_parser(value_parser!(bool))
-                .default_missing_value("false")
-                .default_value("false"),
-        )
+#[derive(Args)]
+pub struct Create {
+    issue: String,
+
+    #[arg(short, long)]
+    _type: Option<String>,
+
+    #[arg(short, long, default_value_t = false)]
+    push: bool,
+}
+
+pub fn handle(jira_api: &JiraApi, args: &Create) -> Result<()> {
+    dbg!(jira_api.get_jira_issue_status(args.issue.clone(), false)?);
+    dbg!(jira_api.get_jira_issue_statuses(vec!["10001".to_string(), "10008".to_string()], false)?);
+    Ok(())
 }

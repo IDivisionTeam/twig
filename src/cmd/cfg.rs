@@ -1,32 +1,22 @@
-use clap::{Arg, Command};
-use clap::builder::NonEmptyStringValueParser;
+use anyhow::Result;
+use clap::{Args, Subcommand};
 
-pub const NAME: &str = "config";
+use crate::network::api::JiraApi;
 
-pub fn subcommand() -> Command {
-    Command::new(NAME)
-        .subcommand(Command::new("list"))
-        .subcommand(
-            Command::new("get").arg(
-                Arg::new("name")
-                    .num_args(1)
-                    .required(true)
-                    .value_parser(NonEmptyStringValueParser::new()),
-            ),
-        )
-        .subcommand(
-            Command::new("set")
-                .arg(
-                    Arg::new("name")
-                        .num_args(1)
-                        .required(true)
-                        .value_parser(NonEmptyStringValueParser::new()),
-                )
-                .arg(
-                    Arg::new("value")
-                        .num_args(1)
-                        .required(true)
-                        .value_parser(NonEmptyStringValueParser::new()),
-                ),
-        )
+#[derive(Args)]
+pub struct Cfg {
+    #[command(subcommand)]
+    command: Commands,
+}
+
+#[derive(Subcommand)]
+enum Commands {
+    List,
+    Get { name: String },
+    Set { name: String, value: String },
+}
+
+pub fn handle(jira_api: &JiraApi, args: &Cfg) -> Result<()> {
+    todo!();
+    Ok(())
 }

@@ -3,7 +3,7 @@ use anyhow::{Context, Result};
 use crate::network::{
     client::TwigClient,
     model::{
-        Credentials, JiraIssue, JiraIssueBulkRequest, JiraIssueStatus, JiraIssueStatusBulkResponse, JiraIssueStatusObject, JiraIssueType
+        Credentials, JiraIssue, JiraIssueBulkRequest, JiraIssueStatusBulkResponse, JiraIssueStatusObject, JiraIssueType
     },
 };
 

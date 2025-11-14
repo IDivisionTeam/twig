@@ -1,20 +1,29 @@
 use anyhow::Result;
-use clap::builder::Styles;
-use clap::{Command, command};
+use clap::{Parser, Subcommand, command};
 
+use crate::cmd::{cfg, clean, create, init};
 use crate::network;
 use crate::network::api::JiraApi;
-use crate::{cmd::cfg, cmd::clean, cmd::create, cmd::init};
 
-fn twig() -> Command {
-    command!()
-        .styles(Styles::styled())
-        .arg_required_else_help(true)
-        // FIXME: Add missing descriptions (help).
-        .subcommand(clean::subcommand())
-        .subcommand(cfg::subcommand())
-        .subcommand(create::subcommand())
-        .subcommand(init::subcommand())
+// To add styling, see https://docs.rs/clap/latest/clap/_derive/_cookbook/cargo_example_derive/index.html
+#[derive(Parser)]
+#[command(version, about, long_about = None, arg_required_else_help(true))]
+struct Twig {
+    #[command(subcommand)]
+    command: Commands,
+}
+
+#[derive(Subcommand)]
+enum Commands {
+    // FIXME: Add missing descriptions (help).
+    /// blablabla
+    Clean(clean::Clean),
+    /// blablabla
+    Cfg(cfg::Cfg),
+    /// create an issue
+    Create(create::Create),
+    /// blablabla
+    Init(init::Init),
 }
 
 pub fn execute() -> Result<()> {
@@ -26,28 +35,14 @@ pub fn execute() -> Result<()> {
     };
     let jira_api = JiraApi::new(credentials)?;
 
-    let matches = twig().get_matches();
+    let twig = Twig::parse();
 
-    // TODO: handle matches
-    match matches.subcommand() {
-        Some((clean::NAME, _clean_matches)) => {
-            // FIXME: assignee must default to project.email.
-        }
-        Some((cfg::NAME, _config_matches)) => {}
-        Some((create::NAME, _create_matches)) => {
-            let issue_key = _create_matches
-                .get_one::<String>("issue")
-                .ok_or(anyhow::Error::msg("issues expected in arg"))?;
-            dbg!(jira_api.get_jira_issue_status(issue_key.clone(), false)?);
-            dbg!(
-                jira_api.get_jira_issue_statuses(
-                    vec!["10001".to_string(), "10008".to_string()],
-                    false
-                )?
-            );
-        }
-        Some((init::NAME, _init_matches)) => {}
-        _ => unreachable!(), // all commands are defined above, anything else is unreachable!()
+    match &twig.command {
+        Commands::Clean(args) => clean::handle(&jira_api, args)?,
+        Commands::Cfg(args) => cfg::handle(&jira_api, args)?,
+        Commands::Create(args) => create::handle(&jira_api, args)?,
+        Commands::Init(args) => init::handle(&jira_api, args)?,
     }
+
     Ok(())
 }

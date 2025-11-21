@@ -101,3 +101,130 @@ fn get_default_config_path() -> String {
     env::var("XDG_CONFIG_HOME").unwrap_or_else(|_| -> String { "~/Library/Preferences/" });
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+    pub use figment::Jail;
+
+    #[test]
+    fn test_read_config_local() {
+        figment::Jail::expect_with(|jail| {
+            jail.create_dir(".twig/config")?;
+            jail.create_file(
+                get_config_local_path(),
+                r#"
+                    [credentials]
+                    host = "test_host"
+                    email = "test_email"
+                    auth = "basic"
+                    token = "super_secret"
+                "#,
+            )?;
+
+            let config: Config = read_config().unwrap();
+            assert_eq!(
+                config,
+                Config {
+                    credentials: Credentials {
+                        host: "test_host".to_string(),
+                        email: "test_email".to_string(),
+                        auth: "basic".to_string(),
+                        token: "super_secret".to_string()
+                    }
+                }
+            );
+
+            Ok(())
+        });
+    }
+
+    #[test]
+    fn test_read_config_global() {
+        figment::Jail::expect_with(|jail| {
+            let current_dir = jail.directory().display().to_string();
+            jail.set_env("XDG_CONFIG_HOME", &current_dir);
+
+            jail.create_dir(current_dir + "/twig")?;
+            jail.create_file(
+                get_config_global_path(),
+                r#"
+                    [credentials]
+                    host = "test_host"
+                    email = "test_email"
+                    auth = "basic"
+                    token = "super_secret"
+                "#,
+            )?;
+
+            let config: Config = read_config().unwrap();
+            assert_eq!(
+                config,
+                Config {
+                    credentials: Credentials {
+                        host: "test_host".to_string(),
+                        email: "test_email".to_string(),
+                        auth: "basic".to_string(),
+                        token: "super_secret".to_string()
+                    }
+                }
+            );
+
+            Ok(())
+        });
+    }
+
+    #[test]
+    fn test_read_config_local_over_global() {
+        figment::Jail::expect_with(|jail| {
+            jail.create_dir(".twig/config")?;
+            jail.create_file(
+                get_config_local_path(),
+                r#"
+                    [credentials]
+                    host = "host_from_local"
+                "#,
+            )?;
+
+            let current_dir = jail.directory().display().to_string();
+            jail.set_env("XDG_CONFIG_HOME", &current_dir);
+
+            jail.create_dir(current_dir + "/twig")?;
+            jail.create_file(
+                get_config_global_path(),
+                r#"
+                    [credentials]
+                    host = "test_host"
+                    email = "test_email"
+                    auth = "basic"
+                    token = "super_secret"
+                "#,
+            )?;
+
+            let config: Config = read_config().unwrap();
+            assert_eq!(
+                config,
+                Config {
+                    credentials: Credentials {
+                        host: "host_from_local".to_string(),
+                        email: "test_email".to_string(),
+                        auth: "basic".to_string(),
+                        token: "super_secret".to_string()
+                    }
+                }
+            );
+
+            Ok(())
+        });
+    }
+
+    #[test]
+    fn test_create_config_if_not_exists() {
+        figment::Jail::try_with(|jail| {
+            jail.create_dir(".twig/config")?;
+
+            create_config_if_not_exist(&get_config_local_path()).unwrap();
+            assert_eq!(Path::new(&get_config_local_path()).exists(), true);
+            Ok(())
+        });
+    }
+}

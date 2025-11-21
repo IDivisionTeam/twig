@@ -42,7 +42,7 @@ impl TwigClient {
         response.json::<T>().context("failed to parse POST response")
     }
 
-    fn request(self: &Self, method: Method, path: &str) -> RequestBuilder {
+    fn request(&self, method: Method, path: &str) -> RequestBuilder {
         let url = format!("{host}/{path}", host = self.host, path = path);
         self.client.request(method, url)
     }

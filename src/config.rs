@@ -82,7 +82,7 @@ pub fn create_config_if_not_exist(config_path: &str) -> Result<(), ConfigError> 
 }
 
 pub fn get_config_local_path() -> String {
-    return ".twig/config/twig.toml".to_string();
+    ".twig/config/twig.toml".to_string()
 }
 
 pub fn get_config_global_path() -> String {
@@ -104,7 +104,6 @@ fn get_default_config_path() -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    pub use figment::Jail;
 
     #[test]
     fn test_read_config_local() {
@@ -219,7 +218,7 @@ mod tests {
 
     #[test]
     fn test_create_config_if_not_exists() {
-        figment::Jail::try_with(|jail| {
+        figment::Jail::expect_with(|jail| {
             jail.create_dir(".twig/config")?;
 
             create_config_if_not_exist(&get_config_local_path()).unwrap();

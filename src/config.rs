@@ -48,25 +48,24 @@ impl Default for Credentials {
 }
 
 pub fn read_config() -> Result<Config, ConfigError> {
-    let global_config_exists = Path::new(&get_config_path(true)).exists();
-    let local_config_exists = Path::new(&get_config_path(false)).exists();
+    let global_config_exists = Path::new(&get_config_global_path()).exists();
+    let local_config_exists = Path::new(&get_config_local_path()).exists();
     if !global_config_exists && !local_config_exists {
         return Ok(Config::default());
     }
     let mut f = Figment::new();
     if global_config_exists {
-        f = f.merge(Toml::file(get_config_path(true)));
+        f = f.merge(Toml::file(get_config_global_path()));
     }
     if local_config_exists {
-        f = f.merge(Toml::file(get_config_path(false)));
+        f = f.merge(Toml::file(get_config_local_path()));
     }
     let config: Config = f.extract()?;
     Ok(config)
 }
 
-pub fn create_config_if_not_exist(global: bool) -> Result<(), ConfigError> {
-    let p = get_config_path(global);
-    let config_path = Path::new(&p);
+pub fn create_config_if_not_exist(config_path: &str) -> Result<(), ConfigError> {
+    let config_path = Path::new(&config_path);
     if config_path.exists() {
         return Ok(());
     }
@@ -76,17 +75,29 @@ pub fn create_config_if_not_exist(global: bool) -> Result<(), ConfigError> {
         None => (),
     };
     let content = toml::to_string(&Config::default())?;
-    let mut file = File::create(get_config_path(global))?;
+    let mut file = File::create(config_path)?;
     file.write_all(content.as_bytes())?;
 
     Ok(())
 }
 
-fn get_config_path(global: bool) -> String {
-    if !global {
-        return "twig.toml".to_string();
-    }
-    let user_config_dir = env::var("XDG_CONFIG_HOME")
-        .unwrap_or_else(|_| -> String { env::var("HOME").unwrap() + "/.config" });
+pub fn get_config_local_path() -> String {
+    return ".twig/config/twig.toml".to_string();
+}
+
+pub fn get_config_global_path() -> String {
+    let user_config_dir = get_default_config_path();
     format!("{user_config_dir}/twig/twig.toml")
 }
+
+#[cfg(target_os = "linux")]
+fn get_default_config_path() -> String {
+    env::var("XDG_CONFIG_HOME")
+        .unwrap_or_else(|_| -> String { env::var("HOME").unwrap() + "/.config" })
+}
+
+#[cfg(target_os = "macos")]
+fn get_default_config_path() -> String {
+    env::var("XDG_CONFIG_HOME").unwrap_or_else(|_| -> String { "~/Library/Preferences/" });
+}
+

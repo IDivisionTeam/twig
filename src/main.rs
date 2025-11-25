@@ -1,7 +1,7 @@
+mod branch;
 mod cmd;
 mod config;
 mod network;
-mod branch;
 
 use anyhow::Result;
 use cmd::twig;

@@ -1,3 +1,4 @@
+mod branch;
 mod cmd;
 mod config;
 mod network;

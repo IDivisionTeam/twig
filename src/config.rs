@@ -98,7 +98,7 @@ fn get_default_config_path() -> String {
 
 #[cfg(target_os = "macos")]
 fn get_default_config_path() -> String {
-    env::var("XDG_CONFIG_HOME").unwrap_or_else(|_| -> String { "~/Library/Preferences/" });
+    env::var("XDG_DATA_HOME").unwrap_or_else(|_| -> String { "~/Library/" });
 }
 
 #[cfg(test)]

@@ -2,6 +2,7 @@ use anyhow::Result;
 use clap::{Parser, Subcommand, command};
 
 use crate::cmd::{cfg, clean, create, init};
+use crate::config::Config;
 use crate::network;
 use crate::network::api::JiraApi;
 
@@ -26,12 +27,12 @@ enum Commands {
     Init(init::Init),
 }
 
-pub fn execute() -> Result<()> {
+pub fn execute(config: Config) -> Result<()> {
     let credentials = network::model::Credentials {
-        host: "".to_string(),
-        auth: "".to_string(),
-        email: "".to_string(),
-        token: "".to_string(),
+        host: config.credentials.host,
+        email: config.credentials.email,
+        auth: config.credentials.auth,
+        token: config.credentials.token,
     };
     let jira_api = JiraApi::new(credentials)?;
 

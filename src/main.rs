@@ -1,9 +1,13 @@
 mod cmd;
+mod config;
 mod network;
 
 use anyhow::Result;
 use cmd::twig;
 
+use crate::config::Config;
+
 fn main() -> Result<()> {
-    twig::execute()
+    let config: Config = config::read_config()?;
+    twig::execute(config)
 }

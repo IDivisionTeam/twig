@@ -6,8 +6,8 @@ use std::{
 };
 
 use figment::{
-    Figment,
     providers::{Format, Toml},
+    Figment,
 };
 use serde::{Deserialize, Serialize};
 
@@ -98,7 +98,7 @@ fn get_default_config_path() -> String {
 
 #[cfg(target_os = "macos")]
 fn get_default_config_path() -> String {
-    env::var("XDG_DATA_HOME").unwrap_or_else(|_| -> String { "~/Library/" });
+    env::var("XDG_DATA_HOME").unwrap_or_else(|_| -> String { "~/Library/".to_string() })
 }
 
 #[cfg(test)]

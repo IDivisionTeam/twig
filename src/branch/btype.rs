@@ -1,6 +1,5 @@
-#[derive(Debug)]
-#[allow(dead_code)]
-enum BranchType {
+#[derive(Debug, PartialEq, Eq)]
+pub enum BranchType {
     Build,
     Chore,
     Ci,
@@ -18,7 +17,7 @@ enum BranchType {
 
 impl BranchType {
     #[allow(dead_code)]
-    fn to_string(&self) -> String {
+    pub fn to_string(&self) -> String {
         match self {
             BranchType::Build => String::from("build"),
             BranchType::Chore => String::from("chore"),
@@ -37,7 +36,7 @@ impl BranchType {
     }
 
     #[allow(dead_code)]
-    fn from_string(input: String) -> Option<BranchType> {
+    pub fn from_string(input: String) -> Option<BranchType> {
         match input.as_str() {
             "build" => Some(BranchType::Build),
             "chore" => Some(BranchType::Chore),
@@ -53,5 +52,14 @@ impl BranchType {
             "test" => Some(BranchType::Test),
             _ => None,
         }
+    }
+
+    #[allow(dead_code)]
+    pub fn is_unspecified(&self) -> bool {
+        self == &BranchType::Unspecified
+    }
+
+    pub fn is_specified(&self) -> bool {
+        self != &BranchType::Unspecified
     }
 }

@@ -1,5 +1,5 @@
 use crate::branch::btype::BranchType;
-use regex::Regex;
+use regex::{Error, Regex};
 use unicode_normalization::UnicodeNormalization;
 
 const BRANCH_TYPE_SEPARATOR: &str = "/";
@@ -8,6 +8,8 @@ const WORD_SEPARATOR: &str = "-";
 
 const ARTICLES: [&str; 3] = ["the", "a", "an"];
 
+// FIXME: this object is responsible for many things. Should be decomposed into several objects instead.
+//  Current implementation almost direct copy of the Branch class in Golang. Most parts were unchanged to preserve the behavior.
 struct Branch {
     pub branch_type: BranchType,
     exclude_phrases: Vec<Regex>,
@@ -27,9 +29,9 @@ impl Branch {
             branch_type: bt,
             exclude_phrases: phrases,
             issue_regex: Regex::new(r"[A-Z]+-\d+_").unwrap(),
-            strip_regex: Regex::new(r"[^a-zA-Z0-9]+").unwrap(),
-            first_pass_kebab_regex: Regex::new(r"([A-Z]+)([A-Z][a-z])").unwrap(),
-            second_pass_kebab_regex: Regex::new(r"([a-z])([A-Z])").unwrap(),
+            strip_regex: build_strip_regex().unwrap(),
+            first_pass_kebab_regex: build_first_pass_kebab_regex().unwrap(),
+            second_pass_kebab_regex: build_second_pass_kebab_regex().unwrap(),
         }
     }
 
@@ -67,6 +69,18 @@ fn build_exclude_phrases_regex_list(exclude_phrases: Vec<String>) -> Vec<Regex> 
         .collect()
 }
 
+fn build_strip_regex() -> Result<Regex, Error> {
+    Regex::new(r"[^a-zA-Z0-9]+")
+}
+
+fn build_first_pass_kebab_regex() -> Result<Regex, Error> {
+    Regex::new(r"([A-Z]+)([A-Z][a-z])")
+}
+
+fn build_second_pass_kebab_regex() -> Result<Regex, Error> {
+    Regex::new(r"([a-z])([A-Z])")
+}
+
 fn append_issue_summary(
     exclude_phrases: &Vec<Regex>,
     first_pass_kebab_regex: &Regex,
@@ -80,7 +94,7 @@ fn append_issue_summary(
         result = tokenize(&result);
         result = replace_phrases(exclude_phrases, &result);
         result = camel_to_kebab(first_pass_kebab_regex, second_pass_kebab_regex, &result);
-        result = strip_phrases(strip_regex, &result);
+        result = strip(strip_regex, &result);
 
         buffer.push_str(&result);
     }
@@ -124,7 +138,7 @@ fn camel_to_kebab(
     kebab.to_lowercase()
 }
 
-fn strip_phrases(strip_regex: &Regex, str: &String) -> String {
+fn strip(strip_regex: &Regex, str: &String) -> String {
     strip_regex
         .replace_all(str, WORD_SEPARATOR)
         .trim_start_matches(WORD_SEPARATOR)
@@ -215,9 +229,83 @@ mod tests {
         assert_eq!(expected, actual);
     }
 
-    // TODO(BR-45): add tests.
-    // camel_to_kebab
-    // strip_phrases
+    #[test]
+    fn replace_phrases_outputs_unchanged_text() {
+        let expected = String::from("[Unknow] (Unknown) Test_Ticket");
+        let phrases = build_exclude_phrases_regex_list(EXCLUDE_PHRASES.to_vec());
+
+        let actual = replace_phrases(&phrases, &expected);
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn camel_to_kebab_changes_text_as_expected() {
+        let expected = String::from("test-ticket");
+        let first_pass = build_first_pass_kebab_regex().unwrap();
+        let second_pass = build_second_pass_kebab_regex().unwrap();
+
+        let actual = camel_to_kebab(&first_pass, &second_pass, &"TestTicket".to_string());
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn camel_to_kebab_takes_place_even_if_starts_with_lowercase() {
+        let expected = String::from("lowercase-ticket-camel");
+        let first_pass = build_first_pass_kebab_regex().unwrap();
+        let second_pass = build_second_pass_kebab_regex().unwrap();
+
+        let actual = camel_to_kebab(
+            &first_pass,
+            &second_pass,
+            &"lowercaseTicketCamel".to_string(),
+        );
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn strip_removes_undesired_symbols() {
+        let expected = String::from("My-test-STRING");
+        let regex = build_strip_regex().unwrap();
+
+        let actual = strip(&regex, &"My test STRING".to_string());
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn strip_must_remove_parentheses() {
+        let expected = String::from("My-test-STRING");
+        let regex = build_strip_regex().unwrap();
+
+        let actual = strip(&regex, &"My (test) STRING".to_string());
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn strip_must_remove_prefix() {
+        let expected = String::from("My-test-STRING");
+        let regex = build_strip_regex().unwrap();
+
+        let actual = strip(&regex, &"(My) test STRING".to_string());
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn strip_must_remove_suffix() {
+        let expected = String::from("My-test-STRING");
+        let regex = build_strip_regex().unwrap();
+
+        let actual = strip(&regex, &"My test (STRING)".to_string());
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn strip_must_treat_unknown_phrases_as_regular_text() {
+        let expected = String::from("Unknow-Temp-Test-Ticket");
+        let regex = build_strip_regex().unwrap();
+
+        let actual = strip(&regex, &"[Unknow] (Temp) Test Ticket".to_string());
+        assert_eq!(expected, actual);
+    }
 
     #[test]
     fn normalize_removes_non_ascii_characters() {
@@ -243,5 +331,42 @@ mod tests {
         assert_eq!(expected, actual);
     }
 
-    // TODO(BR-45): port remaining tests from branch.go
+    #[test]
+    fn branch_build_name_constructs_correct_branch_name() {
+        let expected = String::from("fix/TST-101_my-super-branch-summary");
+        let branch_type = BranchType::Fix.to_string();
+        let subject = Branch::new(branch_type, EXCLUDE_PHRASES.to_vec());
+
+        let actual = subject.build_name(
+            &"TST-101".to_string(),
+            &Some("[Android] \"MY\" (super)_branchSummary".to_string()),
+        );
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn branch_build_name_handles_acronym_case_correctly() {
+        let expected = String::from("ci/TST-101_my-super-branch-summary-http-client");
+        let branch_type = BranchType::Ci.to_string();
+        let subject = Branch::new(branch_type, EXCLUDE_PHRASES.to_vec());
+
+        let actual = subject.build_name(
+            &"TST-101".to_string(),
+            &Some("[Android] \"MY\" (super)_branchSummary HTTPClient".to_string()),
+        );
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn branch_build_name_handles_numeric_acronym_case_correctly() {
+        let expected = String::from("build/TST-101_my-super-branch-summary-j2k");
+        let branch_type = BranchType::Build.to_string();
+        let subject = Branch::new(branch_type, EXCLUDE_PHRASES.to_vec());
+
+        let actual = subject.build_name(
+            &"TST-101".to_string(),
+            &Some("[Android] \"MY\" (super)_branchSummary J2K".to_string()),
+        );
+        assert_eq!(expected, actual);
+    }
 }

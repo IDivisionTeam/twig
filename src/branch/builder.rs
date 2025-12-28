@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use crate::branch::btype::BranchType;
 use regex::{Error, Regex};
 use unicode_normalization::UnicodeNormalization;
@@ -21,7 +23,7 @@ struct Branch {
 }
 
 impl Branch {
-    pub fn new(branch_type: String, exclude_phrases: Vec<String>) -> Self {
+    pub fn new(branch_type: String, exclude_phrases: Vec<&str>) -> Self {
         let bt = BranchType::from_string(branch_type).unwrap_or(BranchType::Unspecified);
         let phrases = build_exclude_phrases_regex_list(exclude_phrases);
 
@@ -40,7 +42,7 @@ impl Branch {
         self.branch_type = branch_type;
     }
 
-    pub fn build_name(&self, key: &String, summary: &Option<String>) -> String {
+    pub fn build_name(&self, key: &str, summary: &Option<String>) -> String {
         let mut buffer: String = String::new();
 
         append_branch_type(&self.branch_type, &mut buffer);
@@ -58,11 +60,11 @@ impl Branch {
     }
 }
 
-fn build_exclude_phrases_regex_list(exclude_phrases: Vec<String>) -> Vec<Regex> {
+fn build_exclude_phrases_regex_list(exclude_phrases: Vec<&str>) -> Vec<Regex> {
     exclude_phrases
         .into_iter()
         .map(|w| {
-            let word = regex::escape(w.as_str());
+            let word = regex::escape(w);
             let pattern = format!(r"(?i)(\[{}\]|\({}\))", word, word);
             Regex::new(&pattern).unwrap()
         })
@@ -82,7 +84,7 @@ fn build_second_pass_kebab_regex() -> Result<Regex, Error> {
 }
 
 fn append_issue_summary(
-    exclude_phrases: &Vec<Regex>,
+    exclude_phrases: &[Regex],
     first_pass_kebab_regex: &Regex,
     second_pass_kebab_regex: &Regex,
     strip_regex: &Regex,
@@ -107,12 +109,12 @@ fn append_branch_type(branch_type: &BranchType, buffer: &mut String) {
     }
 }
 
-fn append_issue_key(key: &String, buffer: &mut String) {
-    buffer.push_str(key.as_str());
+fn append_issue_key(key: &str, buffer: &mut String) {
+    buffer.push_str(key);
     buffer.push_str(ISSUE_TYPE_SEPARATOR);
 }
 
-fn replace_phrases(exclude_phrases: &Vec<Regex>, tokenized: &String) -> String {
+fn replace_phrases(exclude_phrases: &[Regex], tokenized: &str) -> String {
     let mut subject = tokenized.to_owned();
 
     for phrase in exclude_phrases.iter() {
@@ -125,9 +127,9 @@ fn replace_phrases(exclude_phrases: &Vec<Regex>, tokenized: &String) -> String {
 fn camel_to_kebab(
     first_pass_kebab_regex: &Regex,
     second_pass_kebab_regex: &Regex,
-    camel_str: &String,
+    camel_str: &str,
 ) -> String {
-    let kebab = first_pass_kebab_regex.replace_all(camel_str.as_str(), |caps: &regex::Captures| {
+    let kebab = first_pass_kebab_regex.replace_all(camel_str, |caps: &regex::Captures| {
         format!("{}{}{}", &caps[1], WORD_SEPARATOR, &caps[2])
     });
 
@@ -138,7 +140,7 @@ fn camel_to_kebab(
     kebab.to_lowercase()
 }
 
-fn strip(strip_regex: &Regex, str: &String) -> String {
+fn strip(strip_regex: &Regex, str: &str) -> String {
     strip_regex
         .replace_all(str, WORD_SEPARATOR)
         .trim_start_matches(WORD_SEPARATOR)
@@ -146,11 +148,11 @@ fn strip(strip_regex: &Regex, str: &String) -> String {
         .to_string()
 }
 
-fn normalize(summary: &String) -> String {
+fn normalize(summary: &str) -> String {
     summary.nfkd().filter(|c| c.is_ascii()).collect()
 }
 
-fn tokenize(normalized: &String) -> String {
+fn tokenize(normalized: &str) -> String {
     normalized
         .split_whitespace()
         .filter(|word| {
@@ -169,24 +171,12 @@ fn tokenize(normalized: &String) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use lazy_static::lazy_static;
 
-    lazy_static! {
-        // Update if not matching config/twig.toml file.
-        static ref EXCLUDE_PHRASES: Vec<String> = {
-             [
-                "front",
-                "mobile",
-                "android",
-                "ios",
-                "be",
-                "web",
-                "spike",
-                "eval"
-             ].map(String::from).to_vec()
-        };
-    }
-
+    // Update if not matching config/twig.toml file.
+    const EXCLUDE_PHRASES: [&str; 8] = [
+        "front", "mobile", "android", "ios", "be", "web", "spike", "eval",
+    ];
+    
     #[test]
     fn append_branch_type_does_nothing_when_unspecified() {
         let expected = String::new();
@@ -214,7 +204,7 @@ mod tests {
         let expected = format!("XXXX-0000{}", ISSUE_TYPE_SEPARATOR);
         let mut buffer = String::new();
 
-        append_issue_key(&String::from("XXXX-0000"), &mut buffer);
+        append_issue_key("XXXX-0000", &mut buffer);
 
         let actual = buffer;
         assert_eq!(expected, actual);
@@ -225,7 +215,7 @@ mod tests {
         let expected = String::from("Test Ticket");
         let phrases = build_exclude_phrases_regex_list(EXCLUDE_PHRASES.to_vec());
 
-        let actual = replace_phrases(&phrases, &"[Eval] (Mobile) Test Ticket".to_string());
+        let actual = replace_phrases(&phrases, "[Eval] (Mobile) Test Ticket");
         assert_eq!(expected, actual);
     }
 
@@ -244,7 +234,7 @@ mod tests {
         let first_pass = build_first_pass_kebab_regex().unwrap();
         let second_pass = build_second_pass_kebab_regex().unwrap();
 
-        let actual = camel_to_kebab(&first_pass, &second_pass, &"TestTicket".to_string());
+        let actual = camel_to_kebab(&first_pass, &second_pass, "TestTicket");
         assert_eq!(expected, actual);
     }
 
@@ -254,11 +244,7 @@ mod tests {
         let first_pass = build_first_pass_kebab_regex().unwrap();
         let second_pass = build_second_pass_kebab_regex().unwrap();
 
-        let actual = camel_to_kebab(
-            &first_pass,
-            &second_pass,
-            &"lowercaseTicketCamel".to_string(),
-        );
+        let actual = camel_to_kebab(&first_pass, &second_pass, "lowercaseTicketCamel");
         assert_eq!(expected, actual);
     }
 
@@ -267,7 +253,7 @@ mod tests {
         let expected = String::from("My-test-STRING");
         let regex = build_strip_regex().unwrap();
 
-        let actual = strip(&regex, &"My test STRING".to_string());
+        let actual = strip(&regex, "My test STRING");
         assert_eq!(expected, actual);
     }
 
@@ -276,7 +262,7 @@ mod tests {
         let expected = String::from("My-test-STRING");
         let regex = build_strip_regex().unwrap();
 
-        let actual = strip(&regex, &"My (test) STRING".to_string());
+        let actual = strip(&regex, "My (test) STRING");
         assert_eq!(expected, actual);
     }
 
@@ -285,7 +271,7 @@ mod tests {
         let expected = String::from("My-test-STRING");
         let regex = build_strip_regex().unwrap();
 
-        let actual = strip(&regex, &"(My) test STRING".to_string());
+        let actual = strip(&regex, "(My) test STRING");
         assert_eq!(expected, actual);
     }
 
@@ -294,7 +280,7 @@ mod tests {
         let expected = String::from("My-test-STRING");
         let regex = build_strip_regex().unwrap();
 
-        let actual = strip(&regex, &"My test (STRING)".to_string());
+        let actual = strip(&regex, "My test (STRING)");
         assert_eq!(expected, actual);
     }
 
@@ -303,7 +289,7 @@ mod tests {
         let expected = String::from("Unknow-Temp-Test-Ticket");
         let regex = build_strip_regex().unwrap();
 
-        let actual = strip(&regex, &"[Unknow] (Temp) Test Ticket".to_string());
+        let actual = strip(&regex, "[Unknow] (Temp) Test Ticket");
         assert_eq!(expected, actual);
     }
 
@@ -311,7 +297,7 @@ mod tests {
     fn normalize_removes_non_ascii_characters() {
         let expected = String::from("ab aee");
 
-        let actual = normalize(&"ab ®åe©øµ∆e".to_string());
+        let actual = normalize("ab ®åe©øµ∆e");
         assert_eq!(expected, actual);
     }
 
@@ -319,7 +305,7 @@ mod tests {
     fn tokenize_splits_normalized_string() {
         let expected = String::from("string is typical thing");
 
-        let actual = tokenize(&"The string is a typical thing".to_string());
+        let actual = tokenize("The string is a typical thing");
         assert_eq!(expected, actual);
     }
 
@@ -327,7 +313,7 @@ mod tests {
     fn tokenize_removes_articles_from_normalized_string() {
         let expected = String::from("Has no or or you name it");
 
-        let actual = tokenize(&"Has no the THE or thE or AN you name it".to_string());
+        let actual = tokenize("Has no the THE or thE or AN you name it");
         assert_eq!(expected, actual);
     }
 
@@ -338,7 +324,7 @@ mod tests {
         let subject = Branch::new(branch_type, EXCLUDE_PHRASES.to_vec());
 
         let actual = subject.build_name(
-            &"TST-101".to_string(),
+            "TST-101",
             &Some("[Android] \"MY\" (super)_branchSummary".to_string()),
         );
         assert_eq!(expected, actual);
@@ -351,7 +337,7 @@ mod tests {
         let subject = Branch::new(branch_type, EXCLUDE_PHRASES.to_vec());
 
         let actual = subject.build_name(
-            &"TST-101".to_string(),
+            "TST-101",
             &Some("[Android] \"MY\" (super)_branchSummary HTTPClient".to_string()),
         );
         assert_eq!(expected, actual);
@@ -364,7 +350,7 @@ mod tests {
         let subject = Branch::new(branch_type, EXCLUDE_PHRASES.to_vec());
 
         let actual = subject.build_name(
-            &"TST-101".to_string(),
+            "TST-101",
             &Some("[Android] \"MY\" (super)_branchSummary J2K".to_string()),
         );
         assert_eq!(expected, actual);

@@ -17,6 +17,7 @@ pub enum BranchType {
 
 impl BranchType {
     #[allow(dead_code)]
+    #[allow(clippy::inherent_to_string)]
     pub fn to_string(&self) -> String {
         match self {
             BranchType::Build => String::from("build"),

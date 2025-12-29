@@ -1,8 +1,8 @@
 #![allow(dead_code)]
 
-use std::str::FromStr;
 use crate::branch::btype::BranchType;
 use regex::{Error, Regex};
+use std::str::FromStr;
 use unicode_normalization::UnicodeNormalization;
 
 const BRANCH_TYPE_SEPARATOR: &str = "/";
@@ -161,12 +161,8 @@ fn tokenize(normalized: &str) -> String {
                 .iter()
                 .any(|article| word.eq_ignore_ascii_case(article))
         })
-        .fold(String::new(), |acc, next| {
-            if acc.is_empty() {
-                return next.to_string();
-            }
-            acc + " " + next
-        })
+        .collect::<Vec<_>>()
+        .join(" ")
 }
 
 #[cfg(test)]
@@ -177,7 +173,7 @@ mod tests {
     const EXCLUDE_PHRASES: [&str; 8] = [
         "front", "mobile", "android", "ios", "be", "web", "spike", "eval",
     ];
-    
+
     #[test]
     fn append_branch_type_does_nothing_when_unspecified() {
         let expected = String::new();

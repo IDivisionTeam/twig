@@ -25,12 +25,12 @@ struct Branch {
 
 impl Branch {
     pub fn new(branch_type: &str, exclude_phrases: Vec<&str>) -> Self {
-        let bt = BranchType::from_str(branch_type).unwrap_or(BranchType::Unspecified);
-        let phrases = build_exclude_phrases_regex_list(exclude_phrases);
+        let branch_type = BranchType::from_str(branch_type).unwrap_or(BranchType::Unspecified);
+        let exclude_phrases = build_exclude_phrases_regex_list(exclude_phrases);
 
         Self {
-            branch_type: bt,
-            exclude_phrases: phrases,
+            branch_type,
+            exclude_phrases,
             issue_regex: Regex::new(r"[A-Z]+-\d+_").unwrap(),
             strip_regex: build_strip_regex().unwrap(),
             first_pass_kebab_regex: build_first_pass_kebab_regex().unwrap(),

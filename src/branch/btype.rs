@@ -1,3 +1,7 @@
+use std::fmt;
+use std::fmt::Display;
+use std::str::FromStr;
+
 #[derive(Debug, PartialEq, Eq)]
 pub enum BranchType {
     Build,
@@ -17,50 +21,56 @@ pub enum BranchType {
 
 impl BranchType {
     #[allow(dead_code)]
-    #[allow(clippy::inherent_to_string)]
-    pub fn to_string(&self) -> String {
-        match self {
-            BranchType::Build => String::from("build"),
-            BranchType::Chore => String::from("chore"),
-            BranchType::Ci => String::from("ci"),
-            BranchType::Docs => String::from("docs"),
-            BranchType::Feature => String::from("feat"),
-            BranchType::Fix => String::from("fix"),
-            BranchType::Performance => String::from("perf"),
-            BranchType::Refactor => String::from("refactor"),
-            BranchType::Revert => String::from("revert"),
-            BranchType::Style => String::from("style"),
-            BranchType::Temporary => String::from("temp"),
-            BranchType::Test => String::from("test"),
-            BranchType::Unspecified => String::from(""),
-        }
-    }
-
-    #[allow(dead_code)]
-    pub fn from_string(input: String) -> Option<BranchType> {
-        match input.as_str() {
-            "build" => Some(BranchType::Build),
-            "chore" => Some(BranchType::Chore),
-            "ci" => Some(BranchType::Ci),
-            "docs" => Some(BranchType::Docs),
-            "feat" => Some(BranchType::Feature),
-            "fix" => Some(BranchType::Fix),
-            "perf" => Some(BranchType::Performance),
-            "refactor" => Some(BranchType::Refactor),
-            "revert" => Some(BranchType::Revert),
-            "style" => Some(BranchType::Style),
-            "temp" => Some(BranchType::Temporary),
-            "test" => Some(BranchType::Test),
-            _ => None,
-        }
-    }
-
-    #[allow(dead_code)]
     pub fn is_unspecified(&self) -> bool {
         self == &BranchType::Unspecified
     }
 
     pub fn is_specified(&self) -> bool {
         self != &BranchType::Unspecified
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct BranchTypeError;
+
+impl FromStr for BranchType {
+    type Err = BranchTypeError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "build" => Ok(BranchType::Build),
+            "chore" => Ok(BranchType::Chore),
+            "ci" => Ok(BranchType::Ci),
+            "docs" => Ok(BranchType::Docs),
+            "feat" => Ok(BranchType::Feature),
+            "fix" => Ok(BranchType::Fix),
+            "perf" => Ok(BranchType::Performance),
+            "refactor" => Ok(BranchType::Refactor),
+            "revert" => Ok(BranchType::Revert),
+            "style" => Ok(BranchType::Style),
+            "temp" => Ok(BranchType::Temporary),
+            "test" => Ok(BranchType::Test),
+            _ => Err(BranchTypeError),
+        }
+    }
+}
+
+impl Display for BranchType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match *self {
+            BranchType::Build => write!(f, "build"),
+            BranchType::Chore => write!(f, "chore"),
+            BranchType::Ci => write!(f, "ci"),
+            BranchType::Docs => write!(f, "docs"),
+            BranchType::Feature => write!(f, "feat"),
+            BranchType::Fix => write!(f, "fix"),
+            BranchType::Performance => write!(f, "perf"),
+            BranchType::Refactor => write!(f, "refactor"),
+            BranchType::Revert => write!(f, "revert"),
+            BranchType::Style => write!(f, "style"),
+            BranchType::Temporary => write!(f, "temp"),
+            BranchType::Test => write!(f, "test"),
+            BranchType::Unspecified => write!(f, ""),
+        }
     }
 }

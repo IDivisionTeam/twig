@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+use std::str::FromStr;
 use crate::branch::btype::BranchType;
 use regex::{Error, Regex};
 use unicode_normalization::UnicodeNormalization;
@@ -23,8 +24,8 @@ struct Branch {
 }
 
 impl Branch {
-    pub fn new(branch_type: String, exclude_phrases: Vec<&str>) -> Self {
-        let bt = BranchType::from_string(branch_type).unwrap_or(BranchType::Unspecified);
+    pub fn new(branch_type: &str, exclude_phrases: Vec<&str>) -> Self {
+        let bt = BranchType::from_str(branch_type).unwrap_or(BranchType::Unspecified);
         let phrases = build_exclude_phrases_regex_list(exclude_phrases);
 
         Self {
@@ -321,7 +322,7 @@ mod tests {
     fn branch_build_name_constructs_correct_branch_name() {
         let expected = String::from("fix/TST-101_my-super-branch-summary");
         let branch_type = BranchType::Fix.to_string();
-        let subject = Branch::new(branch_type, EXCLUDE_PHRASES.to_vec());
+        let subject = Branch::new(&branch_type, EXCLUDE_PHRASES.to_vec());
 
         let actual = subject.build_name(
             "TST-101",
@@ -334,7 +335,7 @@ mod tests {
     fn branch_build_name_handles_acronym_case_correctly() {
         let expected = String::from("ci/TST-101_my-super-branch-summary-http-client");
         let branch_type = BranchType::Ci.to_string();
-        let subject = Branch::new(branch_type, EXCLUDE_PHRASES.to_vec());
+        let subject = Branch::new(&branch_type, EXCLUDE_PHRASES.to_vec());
 
         let actual = subject.build_name(
             "TST-101",
@@ -347,7 +348,7 @@ mod tests {
     fn branch_build_name_handles_numeric_acronym_case_correctly() {
         let expected = String::from("build/TST-101_my-super-branch-summary-j2k");
         let branch_type = BranchType::Build.to_string();
-        let subject = Branch::new(branch_type, EXCLUDE_PHRASES.to_vec());
+        let subject = Branch::new(&branch_type, EXCLUDE_PHRASES.to_vec());
 
         let actual = subject.build_name(
             "TST-101",

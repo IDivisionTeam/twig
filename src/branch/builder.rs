@@ -46,15 +46,15 @@ impl Branch {
     pub fn build_name(&self, key: &str, summary: &Option<String>) -> String {
         let mut buffer: String = String::new();
 
-        append_branch_type(&self.branch_type, &mut buffer);
-        append_issue_key(key, &mut buffer);
-        append_issue_summary(
+        buffer = append_branch_type(&self.branch_type, &buffer);
+        buffer = append_issue_key(key, &buffer);
+        buffer = append_issue_summary(
             &self.exclude_phrases,
             &self.first_pass_kebab_regex,
             &self.second_pass_kebab_regex,
             &self.strip_regex,
             summary,
-            &mut buffer,
+            &buffer,
         );
 
         buffer
@@ -90,29 +90,32 @@ fn append_issue_summary(
     second_pass_kebab_regex: &Regex,
     strip_regex: &Regex,
     summary: &Option<String>,
-    buffer: &mut String,
-) {
-    if let Some(text) = summary {
-        let mut result = normalize(text);
-        result = tokenize(&result);
-        result = replace_phrases(exclude_phrases, &result);
-        result = camel_to_kebab(first_pass_kebab_regex, second_pass_kebab_regex, &result);
-        result = strip(strip_regex, &result);
+    buffer: &str,
+) -> String {
+    match summary {
+        Some(text) => {
+            let mut result = normalize(&text);
+            result = tokenize(&result);
+            result = replace_phrases(exclude_phrases, &result);
+            result = camel_to_kebab(first_pass_kebab_regex, second_pass_kebab_regex, &result);
+            result = strip(strip_regex, &result);
 
-        buffer.push_str(&result);
+            format!("{}{}", buffer, result)
+        }
+        None => buffer.to_owned(),
     }
 }
 
-fn append_branch_type(branch_type: &BranchType, buffer: &mut String) {
+fn append_branch_type(branch_type: &BranchType, buffer: &str) -> String {
     if branch_type.is_specified() {
-        buffer.push_str(branch_type.to_string().as_str());
-        buffer.push_str(BRANCH_TYPE_SEPARATOR);
+        return format!("{}{}", branch_type, BRANCH_TYPE_SEPARATOR);
     }
+
+    buffer.to_owned()
 }
 
-fn append_issue_key(key: &str, buffer: &mut String) {
-    buffer.push_str(key);
-    buffer.push_str(ISSUE_TYPE_SEPARATOR);
+fn append_issue_key(key: &str, buffer: &str) -> String {
+    format!("{}{}{}", buffer, key, ISSUE_TYPE_SEPARATOR)
 }
 
 fn replace_phrases(exclude_phrases: &[Regex], tokenized: &str) -> String {
@@ -188,22 +191,16 @@ mod tests {
     #[test]
     fn append_branch_type_adds_branch_type_when_specified() {
         let expected = format!("feat{}", BRANCH_TYPE_SEPARATOR);
-        let mut buffer = String::new();
+        let actual = append_branch_type(&BranchType::Feature, "");
 
-        append_branch_type(&BranchType::Feature, &mut buffer);
-
-        let actual = buffer;
         assert_eq!(expected, actual);
     }
 
     #[test]
     fn append_issue_key_adds_issue_key() {
         let expected = format!("XXXX-0000{}", ISSUE_TYPE_SEPARATOR);
-        let mut buffer = String::new();
+        let actual = append_issue_key("XXXX-0000", "");
 
-        append_issue_key("XXXX-0000", &mut buffer);
-
-        let actual = buffer;
         assert_eq!(expected, actual);
     }
 

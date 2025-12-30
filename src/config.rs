@@ -16,16 +16,16 @@ use thiserror::Error;
 #[derive(Error, Debug)]
 pub enum ConfigError {
     #[error("failed to extract config")]
-    ExtractError(#[from] Box<figment::Error>),
+    Extract(#[from] Box<figment::Error>),
     #[error("failed to parse config")]
-    ParseError(#[from] toml::ser::Error),
+    Parse(#[from] toml::ser::Error),
     #[error("failed to create file")]
-    FileError(#[from] io::Error),
+    File(#[from] io::Error),
 }
 
 impl From<figment::Error> for ConfigError {
     fn from(err: figment::Error) -> Self {
-        ConfigError::ExtractError(Box::new(err))
+        ConfigError::Extract(Box::new(err))
     }
 }
 

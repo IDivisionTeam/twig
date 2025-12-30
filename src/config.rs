@@ -70,10 +70,10 @@ pub fn create_config_if_not_exist(config_path: &str) -> Result<(), ConfigError> 
         return Ok(());
     }
 
-    match config_path.parent() {
-        Some(prefix) => fs::create_dir_all(prefix).unwrap(),
-        None => (),
-    };
+    if let Some(prefix) = config_path.parent() {
+        fs::create_dir_all(prefix)?
+    }
+
     let content = toml::to_string(&Config::default())?;
     let mut file = File::create(config_path)?;
     file.write_all(content.as_bytes())?;

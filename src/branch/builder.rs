@@ -2,7 +2,6 @@
 
 use crate::branch::btype::BranchType;
 use regex::{Error, Regex};
-use std::str::FromStr;
 use unicode_normalization::UnicodeNormalization;
 
 const BRANCH_TYPE_SEPARATOR: &str = "/";
@@ -113,7 +112,7 @@ fn append_issue_summary(
 ) -> String {
     match summary {
         Some(text) => {
-            let mut result = normalize(&text);
+            let mut result = normalize(text);
             result = filter_articles(&result);
             result = replace_phrases(exclude_phrases, &result);
             result = pascal_camel_to_kebab(pascal_case_regex, camel_case_regex, &result);

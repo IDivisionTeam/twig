@@ -39,12 +39,12 @@ pub enum BranchType {
 
 impl BranchType {
     /// Returns `true` if the branch type is `Unspecified`.
-    #[allow(dead_code)]
     pub fn is_unspecified(&self) -> bool {
         *self == BranchType::Unspecified
     }
 
     /// Returns `true` if the branch type is anything other than `Unspecified`.
+    #[allow(dead_code)]
     pub fn is_specified(&self) -> bool {
         *self != BranchType::Unspecified
     }

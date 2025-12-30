@@ -128,11 +128,11 @@ fn append_issue_summary(
 /// Returns a new `String` containing the original `buffer` followed by the [BranchType]
 /// and [BRANCH_TYPE_SEPARATOR] if the type is specified; otherwise returns the original `buffer`.
 fn append_branch_type(branch_type: &BranchType, buffer: &str) -> String {
-    if branch_type.is_specified() {
-        return format!("{}{}", branch_type, BRANCH_TYPE_SEPARATOR);
+    if branch_type.is_unspecified() {
+        return buffer.to_owned();
     }
 
-    buffer.to_owned()
+    format!("{}{}{}", buffer, branch_type, BRANCH_TYPE_SEPARATOR)
 }
 
 /// Returns a new `String` containing issue key and [ISSUE_TYPE_SEPARATOR] appended to the given string.

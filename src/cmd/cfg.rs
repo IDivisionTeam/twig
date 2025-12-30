@@ -16,7 +16,6 @@ enum Commands {
     Set { name: String, value: String },
 }
 
-pub fn handle(jira_api: &JiraApi, args: &Cfg) -> Result<()> {
-    todo!();
-    Ok(())
+pub fn handle(_jira_api: &JiraApi, _args: &Cfg) -> Result<()> {
+    todo!()
 }

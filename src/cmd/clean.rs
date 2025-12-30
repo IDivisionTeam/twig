@@ -13,7 +13,6 @@ pub struct Clean {
 }
 
 // FIXME: assignee must default to project.email.
-pub fn handle(jira_api: &JiraApi, args: &Clean) -> Result<()> {
-    todo!();
-    Ok(())
+pub fn handle(_jira_api: &JiraApi, _args: &Clean) -> Result<()> {
+    todo!()
 }

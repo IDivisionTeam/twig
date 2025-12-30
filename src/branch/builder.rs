@@ -27,7 +27,7 @@ struct Branch {
 impl Branch {
     /// Constructs a new instance with the given branch type and excluded phrases.
     pub fn new(branch_type: &str, exclude_phrases: Vec<&str>) -> Self {
-        let branch_type = BranchType::from_str(branch_type).unwrap_or(BranchType::Unspecified);
+        let branch_type = branch_type.parse().unwrap_or(BranchType::Unspecified);
         let exclude_phrases = build_exclude_phrases_regex_list(exclude_phrases);
 
         Self {

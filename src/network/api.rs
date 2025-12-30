@@ -17,12 +17,14 @@ impl JiraApi {
         Ok(Self { client })
     }
 
+    #[allow(dead_code)]
     pub fn get_jira_issue_types(&self) -> Result<Vec<JiraIssueType>> {
         self.client
             .get("issuetype", vec![])
             .context("failed to get jira issues types")
     }
 
+    #[allow(dead_code)]
     pub fn get_jira_issue(&self, issue_key: &str) -> Result<JiraIssue> {
         self.client
             .get(
@@ -32,7 +34,8 @@ impl JiraApi {
             .context("failed to get jira issues types")
     }
 
-    pub fn get_jira_issues(&self, issue_keys: Vec<&str>) -> Result<Vec<JiraIssue>> { // У го такого метода немає 🤷
+    #[allow(dead_code)]
+    pub fn get_jira_issues(&self, _issue_keys: Vec<&str>) -> Result<Vec<JiraIssue>> {
         todo!()
     }
 

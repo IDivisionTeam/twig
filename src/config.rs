@@ -16,11 +16,17 @@ use thiserror::Error;
 #[derive(Error, Debug)]
 pub enum ConfigError {
     #[error("failed to extract config")]
-    ExtractError(#[from] figment::Error),
+    Extract(#[from] Box<figment::Error>),
     #[error("failed to parse config")]
-    ParseError(#[from] toml::ser::Error),
+    Parse(#[from] toml::ser::Error),
     #[error("failed to create file")]
-    FileError(#[from] io::Error),
+    File(#[from] io::Error),
+}
+
+impl From<figment::Error> for ConfigError {
+    fn from(err: figment::Error) -> Self {
+        ConfigError::Extract(Box::new(err))
+    }
 }
 
 #[derive(Debug, Default, PartialEq, Serialize, Deserialize)]
@@ -70,10 +76,10 @@ pub fn create_config_if_not_exist(config_path: &str) -> Result<(), ConfigError> 
         return Ok(());
     }
 
-    match config_path.parent() {
-        Some(prefix) => fs::create_dir_all(prefix).unwrap(),
-        None => (),
-    };
+    if let Some(prefix) = config_path.parent() {
+        fs::create_dir_all(prefix)?
+    }
+
     let content = toml::to_string(&Config::default())?;
     let mut file = File::create(config_path)?;
     file.write_all(content.as_bytes())?;

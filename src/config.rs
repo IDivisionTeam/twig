@@ -32,6 +32,10 @@ impl From<figment::Error> for ConfigError {
 #[derive(Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct Config {
     pub credentials: Credentials,
+    #[serde(default)]
+    pub project: Project,
+    #[serde(default)]
+    pub mapping: Mapping,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
@@ -49,6 +53,64 @@ impl Default for Credentials {
             email: "your_jira_email".to_string(),
             auth: "basic".to_string(),
             token: "your_jira_token".to_string(),
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+pub struct Project {
+    pub branch: String,
+    pub remote: String,
+    pub exclude_phrases: Vec<String>,
+}
+
+impl Default for Project {
+    fn default() -> Self {
+        Self {
+            branch: "development".to_string(),
+            remote: "origin".to_string(),
+            exclude_phrases: [
+                "front", "mobile", "android", "ios", "be", "web", "spike", "eval",
+            ]
+            .map(|s| s.to_string())
+            .to_vec(),
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+pub struct Mapping {
+    pub build: Vec<String>,
+    pub chore: Vec<String>,
+    pub ci: Vec<String>,
+    pub docs: Vec<String>,
+    pub feat: Vec<String>,
+    pub fix: Vec<String>,
+    pub pref: Vec<String>,
+    pub refactor: Vec<String>,
+    pub revert: Vec<String>,
+    pub style: Vec<String>,
+    pub temp: Vec<String>,
+    pub test: Vec<String>,
+}
+
+impl Default for Mapping {
+    fn default() -> Self {
+        let default_vec = vec!["0".to_string()];
+
+        Self {
+            build: default_vec.clone(),
+            chore: default_vec.clone(),
+            ci: default_vec.clone(),
+            docs: default_vec.clone(),
+            feat: default_vec.clone(),
+            fix: default_vec.clone(),
+            pref: default_vec.clone(),
+            refactor: default_vec.clone(),
+            revert: default_vec.clone(),
+            style: default_vec.clone(),
+            temp: default_vec.clone(),
+            test: default_vec.clone(),
         }
     }
 }

@@ -190,11 +190,7 @@ mod tests {
     fn test_read_config_global() {
         figment::Jail::expect_with(|jail| {
             let current_dir = jail.directory().display().to_string();
-            #[cfg(target_os = "macos")]
-            jail.set_env("XDG_DATA_HOME", &current_dir);
-
-            #[cfg(target_os = "linux")]
-            jail.set_env("XDG_CONFIG_HOME", &current_dir);
+            set_home_env_var(jail, &current_dir);
 
             jail.create_dir(current_dir + "/twig")?;
             jail.create_file(get_config_global_path(), &build_test_file_content())?;
@@ -219,11 +215,7 @@ mod tests {
             )?;
 
             let current_dir = jail.directory().display().to_string();
-            #[cfg(target_os = "macos")]
-            jail.set_env("XDG_DATA_HOME", &current_dir);
-
-            #[cfg(target_os = "linux")]
-            jail.set_env("XDG_CONFIG_HOME", &current_dir);
+            set_home_env_var(jail, &current_dir);
 
             jail.create_dir(current_dir + "/twig")?;
             jail.create_file(
@@ -265,6 +257,16 @@ mod tests {
             assert_eq!(Path::new(&get_config_local_path()).exists(), true);
             Ok(())
         });
+    }
+
+    #[cfg(target_os = "macos")]
+    fn set_home_env_var(jail : &mut figment::Jail, current_dir: &str) {
+        jail.set_env("XDG_DATA_HOME", &current_dir);
+    }
+
+    #[cfg(target_os = "linux")]
+    fn set_home_env_var(jail : &mut figment::Jail, current_dir: &str) {
+        jail.set_env("XDG_CONFIG_HOME", &current_dir);
     }
 
     fn build_test_file_content() -> String {

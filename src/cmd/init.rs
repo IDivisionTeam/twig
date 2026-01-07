@@ -12,9 +12,9 @@ pub struct Init {
 
 pub fn handle(_: &JiraApi, args: &Init) -> Result<()> {
     let config_path = if args.global {
-        config::get_config_local_path()
-    } else {
         config::get_config_global_path()
+    } else {
+        config::get_config_local_path()
     };
     config::create_config_if_not_exist(&config_path)?;
     Ok(())

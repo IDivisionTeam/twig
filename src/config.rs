@@ -32,6 +32,10 @@ impl From<figment::Error> for ConfigError {
 #[derive(Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct Config {
     pub credentials: Credentials,
+    #[serde(default)]
+    pub project: Project,
+    #[serde(default)]
+    pub mapping: Mapping,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
@@ -49,6 +53,64 @@ impl Default for Credentials {
             email: "your_jira_email".to_string(),
             auth: "basic".to_string(),
             token: "your_jira_token".to_string(),
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+pub struct Project {
+    pub branch: String,
+    pub remote: String,
+    pub exclude_phrases: Vec<String>,
+}
+
+impl Default for Project {
+    fn default() -> Self {
+        Self {
+            branch: "development".to_string(),
+            remote: "origin".to_string(),
+            exclude_phrases: [
+                "front", "mobile", "android", "ios", "be", "web", "spike", "eval",
+            ]
+            .map(|s| s.to_string())
+            .to_vec(),
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+pub struct Mapping {
+    pub build: Vec<String>,
+    pub chore: Vec<String>,
+    pub ci: Vec<String>,
+    pub docs: Vec<String>,
+    pub feat: Vec<String>,
+    pub fix: Vec<String>,
+    pub pref: Vec<String>,
+    pub refactor: Vec<String>,
+    pub revert: Vec<String>,
+    pub style: Vec<String>,
+    pub temp: Vec<String>,
+    pub test: Vec<String>,
+}
+
+impl Default for Mapping {
+    fn default() -> Self {
+        let default_vec = vec!["0".to_string()];
+
+        Self {
+            build: default_vec.clone(),
+            chore: default_vec.clone(),
+            ci: default_vec.clone(),
+            docs: default_vec.clone(),
+            feat: default_vec.clone(),
+            fix: default_vec.clone(),
+            pref: default_vec.clone(),
+            refactor: default_vec.clone(),
+            revert: default_vec.clone(),
+            style: default_vec.clone(),
+            temp: default_vec.clone(),
+            test: default_vec.clone(),
         }
     }
 }
@@ -115,29 +177,10 @@ mod tests {
     fn test_read_config_local() {
         figment::Jail::expect_with(|jail| {
             jail.create_dir(".twig/config")?;
-            jail.create_file(
-                get_config_local_path(),
-                r#"
-                    [credentials]
-                    host = "test_host"
-                    email = "test_email"
-                    auth = "basic"
-                    token = "super_secret"
-                "#,
-            )?;
+            jail.create_file(get_config_local_path(), &build_test_file_content())?;
 
             let config: Config = read_config().unwrap();
-            assert_eq!(
-                config,
-                Config {
-                    credentials: Credentials {
-                        host: "test_host".to_string(),
-                        email: "test_email".to_string(),
-                        auth: "basic".to_string(),
-                        token: "super_secret".to_string()
-                    }
-                }
-            );
+            assert_eq!(config, build_test_config_model());
 
             Ok(())
         });
@@ -147,32 +190,13 @@ mod tests {
     fn test_read_config_global() {
         figment::Jail::expect_with(|jail| {
             let current_dir = jail.directory().display().to_string();
-            jail.set_env("XDG_CONFIG_HOME", &current_dir);
+            set_home_env_var(jail, &current_dir);
 
             jail.create_dir(current_dir + "/twig")?;
-            jail.create_file(
-                get_config_global_path(),
-                r#"
-                    [credentials]
-                    host = "test_host"
-                    email = "test_email"
-                    auth = "basic"
-                    token = "super_secret"
-                "#,
-            )?;
+            jail.create_file(get_config_global_path(), &build_test_file_content())?;
 
             let config: Config = read_config().unwrap();
-            assert_eq!(
-                config,
-                Config {
-                    credentials: Credentials {
-                        host: "test_host".to_string(),
-                        email: "test_email".to_string(),
-                        auth: "basic".to_string(),
-                        token: "super_secret".to_string()
-                    }
-                }
-            );
+            assert_eq!(config, build_test_config_model());
 
             Ok(())
         });
@@ -191,7 +215,7 @@ mod tests {
             )?;
 
             let current_dir = jail.directory().display().to_string();
-            jail.set_env("XDG_CONFIG_HOME", &current_dir);
+            set_home_env_var(jail, &current_dir);
 
             jail.create_dir(current_dir + "/twig")?;
             jail.create_file(
@@ -214,7 +238,9 @@ mod tests {
                         email: "test_email".to_string(),
                         auth: "basic".to_string(),
                         token: "super_secret".to_string()
-                    }
+                    },
+                    project: Default::default(),
+                    mapping: Default::default(),
                 }
             );
 
@@ -231,5 +257,73 @@ mod tests {
             assert_eq!(Path::new(&get_config_local_path()).exists(), true);
             Ok(())
         });
+    }
+
+    #[cfg(target_os = "macos")]
+    fn set_home_env_var(jail : &mut figment::Jail, current_dir: &str) {
+        jail.set_env("XDG_DATA_HOME", &current_dir);
+    }
+
+    #[cfg(target_os = "linux")]
+    fn set_home_env_var(jail : &mut figment::Jail, current_dir: &str) {
+        jail.set_env("XDG_CONFIG_HOME", &current_dir);
+    }
+
+    fn build_test_file_content() -> String {
+        r#"
+            [credentials]
+            host = "test_host"
+            email = "test_email"
+            auth = "basic"
+            token = "super_secret"
+            [project]
+            branch = "main"
+            remote = "myorigin"
+            exclude_phrases = ["test", "super_test"]
+            [mapping]
+            build = ["1"]
+            chore = ["2"]
+            ci = ["3"]
+            docs = ["4"]
+            feat = ["5"]
+            fix = ["6"]
+            pref = ["7"]
+            refactor = ["8"]
+            revert = ["9"]
+            style = ["10"]
+            temp = ["11"]
+            test = ["12"]
+        "#
+        .to_string()
+    }
+
+    fn build_test_config_model() -> Config {
+        Config {
+            credentials: Credentials {
+                host: "test_host".to_string(),
+                email: "test_email".to_string(),
+                auth: "basic".to_string(),
+                token: "super_secret".to_string(),
+            },
+            project: Project {
+                branch: "main".to_string(),
+                remote: "myorigin".to_string(),
+                exclude_phrases: vec!["test".to_string(), "super_test".to_string()],
+            },
+            mapping: Mapping {
+                build: vec!["1".to_string()],
+                chore: vec!["2".to_string()],
+                ci: vec!["3".to_string()],
+                docs: vec!["4".to_string()],
+                feat: vec!["5".to_string()],
+                fix: vec!["6".to_string()],
+                pref: vec!["7".to_string()],
+                refactor: vec!["8".to_string()],
+                revert: vec!["9".to_string()],
+                style: vec!["10".to_string()],
+                temp: vec!["11".to_string()],
+                test: vec!["12".to_string()],
+            },
+        }
     }
 }

@@ -29,10 +29,10 @@ enum Commands {
 
 pub fn execute(config: Config) -> Result<()> {
     let credentials = network::model::Credentials {
-        host: config.credentials.host,
-        email: config.credentials.email,
-        auth: config.credentials.auth,
-        token: config.credentials.token,
+        host: config.credentials.host.clone(),
+        email: config.credentials.email.clone(),
+        auth: config.credentials.auth.clone(),
+        token: config.credentials.token.clone(),
     };
     let jira_api = JiraApi::new(credentials)?;
 
@@ -41,7 +41,7 @@ pub fn execute(config: Config) -> Result<()> {
     match &twig.command {
         Commands::Clean(args) => clean::handle(&jira_api, args)?,
         Commands::Cfg(args) => cfg::handle(&jira_api, args)?,
-        Commands::Create(args) => create::handle(&jira_api, args)?,
+        Commands::Create(args) => create::handle(&jira_api, args, &config)?,
         Commands::Init(args) => init::handle(&jira_api, args)?,
     }
 

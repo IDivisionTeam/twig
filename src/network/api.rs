@@ -3,7 +3,8 @@ use anyhow::{Context, Result};
 use crate::network::{
     client::TwigClient,
     model::{
-        Credentials, JiraIssue, JiraIssueBulkRequest, JiraIssueStatusBulkResponse, JiraIssueStatusObject, JiraIssueType
+        Credentials, JiraIssue, JiraIssueBulkRequest, JiraIssueStatusBulkResponse,
+        JiraIssueStatusObject, JiraIssueType,
     },
 };
 
@@ -39,6 +40,7 @@ impl JiraApi {
         todo!()
     }
 
+    #[allow(dead_code)]
     pub fn get_jira_issue_status(
         &self,
         issue_key: String,
@@ -53,6 +55,7 @@ impl JiraApi {
             .context("failed to get jira issues types")
     }
 
+    #[allow(dead_code)]
     pub fn get_jira_issue_statuses(
         &self,
         issue_keys: Vec<String>,

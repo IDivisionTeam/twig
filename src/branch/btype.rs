@@ -1,6 +1,7 @@
 use std::fmt;
 use std::fmt::Display;
 use std::str::FromStr;
+use thiserror::Error;
 
 /// Categorizes branches by the primary type of change they introduce.
 ///
@@ -50,8 +51,11 @@ impl BranchType {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
-pub struct BranchTypeError;
+#[derive(Error, Debug, PartialEq, Eq)]
+pub enum BranchTypeError {
+    #[error("failed to parse branch type")]
+    InvalidType,
+}
 
 impl FromStr for BranchType {
     type Err = BranchTypeError;
@@ -70,7 +74,7 @@ impl FromStr for BranchType {
             "style" => Ok(BranchType::Style),
             "temp" => Ok(BranchType::Temporary),
             "test" => Ok(BranchType::Test),
-            _ => Err(BranchTypeError),
+            _ => Err(BranchTypeError::InvalidType),
         }
     }
 }

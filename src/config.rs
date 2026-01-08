@@ -1,4 +1,5 @@
 use std::{
+    collections::HashMap,
     env,
     fs::{self, File},
     io::{self, Write},
@@ -6,12 +7,14 @@ use std::{
 };
 
 use figment::{
-    providers::{Format, Toml},
     Figment,
+    providers::{Format, Toml},
 };
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 
 use thiserror::Error;
+
+use crate::branch;
 
 #[derive(Error, Debug)]
 pub enum ConfigError {
@@ -34,7 +37,7 @@ pub struct Config {
     pub credentials: Credentials,
     #[serde(default)]
     pub project: Project,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "transpose_map")]
     pub mapping: Mapping,
 }
 
@@ -78,41 +81,73 @@ impl Default for Project {
     }
 }
 
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
-pub struct Mapping {
-    pub build: Vec<String>,
-    pub chore: Vec<String>,
-    pub ci: Vec<String>,
-    pub docs: Vec<String>,
-    pub feat: Vec<String>,
-    pub fix: Vec<String>,
-    pub pref: Vec<String>,
-    pub refactor: Vec<String>,
-    pub revert: Vec<String>,
-    pub style: Vec<String>,
-    pub temp: Vec<String>,
-    pub test: Vec<String>,
+#[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Hash, Clone, Copy)]
+#[serde(rename_all = "snake_case")]
+pub enum MappingType {
+    /// Changes that affect the build system or external dependencies.
+    Build,
+    /// Routine maintenance tasks that do not modify source or test files.
+    Chore,
+    /// Changes to the CI configuration files and scripts.
+    Ci,
+    /// Documentation only changes.
+    Docs,
+    /// A new feature.
+    Feat,
+    /// A bug fix.
+    Fix,
+    /// A code change that improves performance.
+    Perf,
+    /// A code change that neither fixes a bug nor adds a feature.
+    Refactor,
+    /// Reverts a previous commit(s).
+    Revert,
+    /// Changes that do not affect the meaning of the code (white-space, formatting, missing semicolons, etc.).
+    Style,
+    /// Temporary or experimental changes not intended for long-term use.
+    Temp,
+    /// Adding missing tests or correcting existing tests.
+    Test,
 }
 
-impl Default for Mapping {
-    fn default() -> Self {
-        let default_vec = vec!["0".to_string()];
-
-        Self {
-            build: default_vec.clone(),
-            chore: default_vec.clone(),
-            ci: default_vec.clone(),
-            docs: default_vec.clone(),
-            feat: default_vec.clone(),
-            fix: default_vec.clone(),
-            pref: default_vec.clone(),
-            refactor: default_vec.clone(),
-            revert: default_vec.clone(),
-            style: default_vec.clone(),
-            temp: default_vec.clone(),
-            test: default_vec.clone(),
+impl From<MappingType> for branch::BranchType {
+    fn from(value: MappingType) -> Self {
+        match value {
+            MappingType::Build => branch::BranchType::Build,
+            MappingType::Chore => branch::BranchType::Chore,
+            MappingType::Ci => branch::BranchType::Ci,
+            MappingType::Docs => branch::BranchType::Docs,
+            MappingType::Feat => branch::BranchType::Feature,
+            MappingType::Fix => branch::BranchType::Fix,
+            MappingType::Perf => branch::BranchType::Performance,
+            MappingType::Refactor => branch::BranchType::Refactor,
+            MappingType::Revert => branch::BranchType::Revert,
+            MappingType::Style => branch::BranchType::Style,
+            MappingType::Temp => branch::BranchType::Temporary,
+            MappingType::Test => branch::BranchType::Test,
         }
     }
+}
+
+pub type Mapping = HashMap<String, MappingType>;
+
+fn transpose_map<'de, D>(deserializer: D) -> Result<HashMap<String, MappingType>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let original: HashMap<MappingType, Vec<String>> = HashMap::deserialize(deserializer)?;
+    let mut transposed: HashMap<String, MappingType> = HashMap::new();
+
+    for (key, values) in original {
+        for value in values {
+            if value == "0" {
+                continue;
+            }
+            transposed.entry(value).or_insert(key);
+        }
+    }
+
+    Ok(transposed)
 }
 
 pub fn read_config() -> Result<Config, ConfigError> {
@@ -249,6 +284,22 @@ mod tests {
     }
 
     #[test]
+    fn test_read_config_skip_zero_issue_type() {
+        figment::Jail::expect_with(|jail| {
+            jail.create_dir(".twig/config")?;
+            jail.create_file(
+                get_config_local_path(),
+                &build_test_file_content_with_zero_issue_type(),
+            )?;
+
+            let config: Config = read_config().unwrap();
+            assert_eq!(config, build_test_config_model_with_zero_issue_type());
+
+            Ok(())
+        });
+    }
+
+    #[test]
     fn test_create_config_if_not_exists() {
         figment::Jail::expect_with(|jail| {
             jail.create_dir(".twig/config")?;
@@ -260,12 +311,12 @@ mod tests {
     }
 
     #[cfg(target_os = "macos")]
-    fn set_home_env_var(jail : &mut figment::Jail, current_dir: &str) {
+    fn set_home_env_var(jail: &mut figment::Jail, current_dir: &str) {
         jail.set_env("XDG_DATA_HOME", &current_dir);
     }
 
     #[cfg(target_os = "linux")]
-    fn set_home_env_var(jail : &mut figment::Jail, current_dir: &str) {
+    fn set_home_env_var(jail: &mut figment::Jail, current_dir: &str) {
         jail.set_env("XDG_CONFIG_HOME", &current_dir);
     }
 
@@ -281,18 +332,46 @@ mod tests {
             remote = "myorigin"
             exclude_phrases = ["test", "super_test"]
             [mapping]
-            build = ["1"]
+            build = ["1.1", "1.2"]
             chore = ["2"]
             ci = ["3"]
             docs = ["4"]
             feat = ["5"]
             fix = ["6"]
-            pref = ["7"]
+            perf = ["7"]
             refactor = ["8"]
             revert = ["9"]
             style = ["10"]
             temp = ["11"]
             test = ["12"]
+        "#
+        .to_string()
+    }
+
+    fn build_test_file_content_with_zero_issue_type() -> String {
+        r#"
+            [credentials]
+            host = "test_host"
+            email = "test_email"
+            auth = "basic"
+            token = "super_secret"
+            [project]
+            branch = "main"
+            remote = "myorigin"
+            exclude_phrases = ["test", "super_test"]
+            [mapping]
+            build = ["0"]
+            chore = ["0"]
+            ci = ["0"]
+            docs = ["0"]
+            feat = ["0"]
+            fix = ["0"]
+            perf = ["0"]
+            refactor = ["0"]
+            revert = ["0"]
+            style = ["0"]
+            temp = ["0"]
+            test = ["0"]
         "#
         .to_string()
     }
@@ -310,20 +389,38 @@ mod tests {
                 remote: "myorigin".to_string(),
                 exclude_phrases: vec!["test".to_string(), "super_test".to_string()],
             },
-            mapping: Mapping {
-                build: vec!["1".to_string()],
-                chore: vec!["2".to_string()],
-                ci: vec!["3".to_string()],
-                docs: vec!["4".to_string()],
-                feat: vec!["5".to_string()],
-                fix: vec!["6".to_string()],
-                pref: vec!["7".to_string()],
-                refactor: vec!["8".to_string()],
-                revert: vec!["9".to_string()],
-                style: vec!["10".to_string()],
-                temp: vec!["11".to_string()],
-                test: vec!["12".to_string()],
+            mapping: HashMap::from([
+                ("1.1".to_string(), MappingType::Build),
+                ("1.2".to_string(), MappingType::Build),
+                ("2".to_string(), MappingType::Chore),
+                ("3".to_string(), MappingType::Ci),
+                ("4".to_string(), MappingType::Docs),
+                ("5".to_string(), MappingType::Feat),
+                ("6".to_string(), MappingType::Fix),
+                ("7".to_string(), MappingType::Perf),
+                ("8".to_string(), MappingType::Refactor),
+                ("9".to_string(), MappingType::Revert),
+                ("10".to_string(), MappingType::Style),
+                ("11".to_string(), MappingType::Temp),
+                ("12".to_string(), MappingType::Test),
+            ]),
+        }
+    }
+
+    fn build_test_config_model_with_zero_issue_type() -> Config {
+        Config {
+            credentials: Credentials {
+                host: "test_host".to_string(),
+                email: "test_email".to_string(),
+                auth: "basic".to_string(),
+                token: "super_secret".to_string(),
             },
+            project: Project {
+                branch: "main".to_string(),
+                remote: "myorigin".to_string(),
+                exclude_phrases: vec!["test".to_string(), "super_test".to_string()],
+            },
+            mapping: HashMap::new(),
         }
     }
 }

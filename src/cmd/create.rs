@@ -57,7 +57,7 @@ fn try_map_issue_type_to_branch_type(
     };
 
     match mapping.get(&issue_type.id) {
-        Some(mt) => Ok(mt.clone().into()),
+        Some(mt) => Ok((*mt).into()),
         None => Ok(BranchType::Unspecified),
     }
 }

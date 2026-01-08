@@ -32,6 +32,7 @@ impl TwigClient {
         response.json::<T>().context("failed to parse GET response")
     }
 
+    #[allow(dead_code)]
     pub fn post<T: DeserializeOwned, S: Serialize>(&self, path: &str, body: S) -> Result<T> {
         let response = self
             .request(Method::POST, path)
@@ -39,7 +40,9 @@ impl TwigClient {
             .send()?
             .error_for_status()
             .context("failed to send POST request")?;
-        response.json::<T>().context("failed to parse POST response")
+        response
+            .json::<T>()
+            .context("failed to parse POST response")
     }
 
     fn request(&self, method: Method, path: &str) -> RequestBuilder {

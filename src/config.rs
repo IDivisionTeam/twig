@@ -143,7 +143,7 @@ where
             if value == "0" {
                 continue;
             }
-            transposed.entry(value).or_insert(key.clone());
+            transposed.entry(value).or_insert(key);
         }
     }
 

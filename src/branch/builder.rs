@@ -13,7 +13,7 @@ const ARTICLES: [&str; 3] = ["the", "a", "an"];
 // FIXME: this object is responsible for many things. Should be decomposed into several objects instead.
 //  Current implementation almost direct copy of the Branch class in Golang. Most parts were unchanged to preserve the behavior.
 /// Represents a branch with its type and rules for generating normalized names.
-struct Branch {
+pub struct Branch {
     pub branch_type: BranchType,
     exclude_phrases: Vec<Regex>,
     #[allow(dead_code)]
@@ -25,8 +25,7 @@ struct Branch {
 
 impl Branch {
     /// Constructs a new instance with the given branch type and excluded phrases.
-    pub fn new(branch_type: &str, exclude_phrases: Vec<&str>) -> Self {
-        let branch_type = branch_type.parse().unwrap_or(BranchType::Unspecified);
+    pub fn new(branch_type: BranchType, exclude_phrases: Vec<&str>) -> Self {
         let exclude_phrases = build_exclude_phrases_regex_list(exclude_phrases);
 
         Self {
@@ -349,8 +348,8 @@ mod tests {
     #[test]
     fn branch_build_name_constructs_correct_branch_name() {
         let expected = String::from("fix/TST-101_my-super-branch-summary");
-        let branch_type = BranchType::Fix.to_string();
-        let subject = Branch::new(&branch_type, EXCLUDE_PHRASES.to_vec());
+        let branch_type = BranchType::Fix;
+        let subject = Branch::new(branch_type, EXCLUDE_PHRASES.to_vec());
 
         let actual = subject.build_name(
             "TST-101",
@@ -362,8 +361,8 @@ mod tests {
     #[test]
     fn branch_build_name_handles_acronym_case_correctly() {
         let expected = String::from("ci/TST-101_my-super-branch-summary-http-client");
-        let branch_type = BranchType::Ci.to_string();
-        let subject = Branch::new(&branch_type, EXCLUDE_PHRASES.to_vec());
+        let branch_type = BranchType::Ci;
+        let subject = Branch::new(branch_type, EXCLUDE_PHRASES.to_vec());
 
         let actual = subject.build_name(
             "TST-101",
@@ -375,8 +374,8 @@ mod tests {
     #[test]
     fn branch_build_name_handles_numeric_acronym_case_correctly() {
         let expected = String::from("build/TST-101_my-super-branch-summary-j2k");
-        let branch_type = BranchType::Build.to_string();
-        let subject = Branch::new(&branch_type, EXCLUDE_PHRASES.to_vec());
+        let branch_type = BranchType::Build;
+        let subject = Branch::new(branch_type, EXCLUDE_PHRASES.to_vec());
 
         let actual = subject.build_name(
             "TST-101",

@@ -41,7 +41,7 @@ pub fn execute(config: Config) -> Result<()> {
 
     match &twig.command {
         Commands::Clean(args) => clean::handle(&jira_api, args)?,
-        Commands::Config(args) => cfg::handle(args)?,
+        Commands::Config(args) => cfg::handle(args, &config)?,
         Commands::Create(args) => create::handle(&jira_api, args, &config)?,
         Commands::Init(args) => init::handle(&jira_api, args)?,
     }

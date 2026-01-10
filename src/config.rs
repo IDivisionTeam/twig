@@ -1,16 +1,17 @@
+use figment::{
+    providers::{Format, Toml},
+    Figment,
+};
+use serde::{Deserialize, Deserializer, Serialize};
+use std::cmp::Ordering;
+use std::fmt::Display;
 use std::{
     collections::HashMap,
-    env,
+    env, fmt,
     fs::{self, File},
     io::{self, Write},
     path::Path,
 };
-
-use figment::{
-    Figment,
-    providers::{Format, Toml},
-};
-use serde::{Deserialize, Deserializer, Serialize};
 
 use thiserror::Error;
 
@@ -81,7 +82,7 @@ impl Default for Project {
     }
 }
 
-#[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Hash, Clone, Copy)]
+#[derive(Debug, Eq, PartialEq, Ord, PartialOrd, Serialize, Deserialize, Hash, Clone, Copy)]
 #[serde(rename_all = "snake_case")]
 pub enum MappingType {
     /// Changes that affect the build system or external dependencies.
@@ -125,6 +126,25 @@ impl From<MappingType> for branch::BranchType {
             MappingType::Style => branch::BranchType::Style,
             MappingType::Temp => branch::BranchType::Temporary,
             MappingType::Test => branch::BranchType::Test,
+        }
+    }
+}
+
+impl Display for MappingType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match *self {
+            MappingType::Build => write!(f, "build"),
+            MappingType::Chore => write!(f, "chore"),
+            MappingType::Ci => write!(f, "ci"),
+            MappingType::Docs => write!(f, "docs"),
+            MappingType::Feat => write!(f, "feat"),
+            MappingType::Fix => write!(f, "fix"),
+            MappingType::Perf => write!(f, "perf"),
+            MappingType::Refactor => write!(f, "refactor"),
+            MappingType::Revert => write!(f, "revert"),
+            MappingType::Style => write!(f, "style"),
+            MappingType::Temp => write!(f, "temp"),
+            MappingType::Test => write!(f, "test"),
         }
     }
 }

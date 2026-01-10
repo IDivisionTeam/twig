@@ -3,7 +3,6 @@ use figment::{
     Figment,
 };
 use serde::{Deserialize, Deserializer, Serialize};
-use std::cmp::Ordering;
 use std::fmt::Display;
 use std::{
     collections::HashMap,

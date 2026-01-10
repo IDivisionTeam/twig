@@ -25,10 +25,12 @@ enum Commands {
 
 pub fn handle(args: &Cfg, config: &config::Config) -> Result<()> {
     match &args.command {
-        Commands::List => handle_list_cmd(&config),
+        Commands::List => handle_list_cmd(config),
+        #[allow(unused_variables)]
         Commands::Get { name } => {
             todo!()
         }
+        #[allow(unused_variables)]
         Commands::Set { name, value } => {
             todo!()
         }
@@ -69,9 +71,8 @@ fn handle_list_cmd(config: &config::Config) {
 
     let sorted_mapping: BTreeMap<_, _> = inverted_mapping.into_iter().collect();
 
-    let mut index = 0;
     let size = sorted_mapping.len() - 1;
-    for (key, value) in sorted_mapping {
+    for (index, (key, value)) in sorted_mapping.into_iter().enumerate() {
         let values = value.join(", ");
         let output = format!("mapping.{key}=[{values}]");
 
@@ -80,7 +81,5 @@ fn handle_list_cmd(config: &config::Config) {
         } else {
             println!("{output}");
         }
-
-        index += 1;
     }
 }

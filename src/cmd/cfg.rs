@@ -2,7 +2,7 @@ use crate::config;
 use crate::config::MappingType;
 use anyhow::Result;
 use clap::{Args, Subcommand};
-use std::collections::{BTreeMap, HashMap};
+use std::collections::BTreeMap;
 
 #[derive(Args)]
 pub struct Cfg {
@@ -62,17 +62,15 @@ fn handle_list_cmd(config: &config::Config) {
     print!("{output}");
 
     let inverted_mapping = config.mapping.clone().into_iter().fold(
-        HashMap::<MappingType, Vec<String>>::new(),
+        BTreeMap::<MappingType, Vec<String>>::new(),
         |mut acc, (k, v)| {
             acc.entry(v).or_default().push(k);
             acc
         },
     );
 
-    let sorted_mapping: BTreeMap<_, _> = inverted_mapping.into_iter().collect();
-
-    let size = sorted_mapping.len() - 1;
-    for (index, (key, value)) in sorted_mapping.into_iter().enumerate() {
+    let size = inverted_mapping.len() - 1;
+    for (index, (key, value)) in inverted_mapping.into_iter().enumerate() {
         let values = value.join(", ");
         let output = format!("mapping.{key}=[{values}]");
 

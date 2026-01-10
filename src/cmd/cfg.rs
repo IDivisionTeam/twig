@@ -69,7 +69,7 @@ fn handle_list_cmd(config: &config::Config) {
         },
     );
 
-    let size = inverted_mapping.len() - 1;
+    let size = inverted_mapping.len().saturating_sub(1);
     for (index, (key, value)) in inverted_mapping.into_iter().enumerate() {
         let values = value.join(", ");
         let output = format!("mapping.{key}=[{values}]");

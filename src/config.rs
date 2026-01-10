@@ -11,7 +11,6 @@ use std::{
     io::{self, Write},
     path::Path,
 };
-
 use thiserror::Error;
 
 use crate::branch;
@@ -60,6 +59,24 @@ impl Default for Credentials {
     }
 }
 
+impl Display for Credentials {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "\
+            credentials.auth={auth}\n\
+            credentials.email={email}\n\
+            credentials.host={host}\n\
+            credentials.token={token}\n\
+            ",
+            auth = self.auth,
+            email = self.email,
+            host = self.host,
+            token = self.token,
+        )
+    }
+}
+
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct Project {
     pub branch: String,
@@ -78,6 +95,22 @@ impl Default for Project {
             .map(|s| s.to_string())
             .to_vec(),
         }
+    }
+}
+
+impl Display for Project {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "\
+            project.branch={branch}\n\
+            project.exclude_phrases=[{exclude_phrases}]\n\
+            project.remote={remote}\n\
+            ",
+            branch = self.branch,
+            exclude_phrases = self.exclude_phrases.join(", "),
+            remote = self.remote,
+        )
     }
 }
 

@@ -40,26 +40,7 @@ pub fn handle(args: &Cfg, config: &config::Config) -> Result<()> {
 }
 
 fn handle_list_cmd(config: &config::Config) {
-    let output = format!(
-        "\
-        credentials.auth={auth}\n\
-        credentials.email={email}\n\
-        credentials.host={host}\n\
-        credentials.token={token}\n\
-        project.branch={branch}\n\
-        project.exclude_phrases=[{exclude_phrases}]\n\
-        project.remote={remote}\n\
-        ",
-        auth = config.credentials.auth,
-        host = config.credentials.host,
-        email = config.credentials.email,
-        token = config.credentials.token,
-        branch = config.project.branch,
-        exclude_phrases = config.project.exclude_phrases.join(", "),
-        remote = config.project.remote,
-    );
-
-    print!("{output}");
+    print!("{}{}", config.credentials, config.project);
 
     let inverted_mapping = config.mapping.clone().into_iter().fold(
         BTreeMap::<MappingType, Vec<String>>::new(),

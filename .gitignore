@@ -63,3 +63,4 @@ fabric.properties
 .idea/vcs.xml
 .idea/codeStyles/codeStyleConfig.xml
 .idea/copyright/profiles_settings.xml
+.twig

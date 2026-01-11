@@ -3,6 +3,7 @@ use figment::{
     Figment,
 };
 use serde::{Deserialize, Deserializer, Serialize};
+use std::collections::BTreeMap;
 use std::fmt::Display;
 use std::{
     collections::HashMap,
@@ -36,7 +37,7 @@ pub struct Config {
     pub credentials: Credentials,
     #[serde(default)]
     pub project: Project,
-    #[serde(default, deserialize_with = "transpose_map")]
+    #[serde(default)]
     pub mapping: Mapping,
 }
 
@@ -181,7 +182,38 @@ impl Display for MappingType {
     }
 }
 
-pub type Mapping = HashMap<String, MappingType>;
+#[derive(Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct Mapping {
+    #[serde(flatten, default, deserialize_with = "transpose_map")]
+    pub entries: HashMap<String, MappingType>,
+}
+
+impl Display for Mapping {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let inverted_mapping = self.entries.clone().into_iter().fold(
+            BTreeMap::<MappingType, Vec<String>>::new(),
+            |mut acc, (k, v)| {
+                acc.entry(v).or_default().push(k);
+                acc
+            },
+        );
+
+        let mut formatted_str: String = inverted_mapping
+            .into_iter()
+            .map(|(k, v)| {
+                let values = v.join(", ");
+
+                format!("mapping.{k}=[{values}]\n")
+            })
+            .collect();
+
+        if formatted_str.ends_with('\n') {
+            formatted_str.pop();
+        }
+
+        write!(f, "{}", formatted_str)
+    }
+}
 
 fn transpose_map<'de, D>(deserializer: D) -> Result<HashMap<String, MappingType>, D::Error>
 where
@@ -327,7 +359,9 @@ mod tests {
                         token: "super_secret".to_string()
                     },
                     project: Default::default(),
-                    mapping: Default::default(),
+                    mapping: Mapping {
+                        entries: Default::default()
+                    },
                 }
             );
 
@@ -441,21 +475,23 @@ mod tests {
                 remote: "myorigin".to_string(),
                 exclude_phrases: vec!["test".to_string(), "super_test".to_string()],
             },
-            mapping: HashMap::from([
-                ("1.1".to_string(), MappingType::Build),
-                ("1.2".to_string(), MappingType::Build),
-                ("2".to_string(), MappingType::Chore),
-                ("3".to_string(), MappingType::Ci),
-                ("4".to_string(), MappingType::Docs),
-                ("5".to_string(), MappingType::Feat),
-                ("6".to_string(), MappingType::Fix),
-                ("7".to_string(), MappingType::Perf),
-                ("8".to_string(), MappingType::Refactor),
-                ("9".to_string(), MappingType::Revert),
-                ("10".to_string(), MappingType::Style),
-                ("11".to_string(), MappingType::Temp),
-                ("12".to_string(), MappingType::Test),
-            ]),
+            mapping: Mapping {
+                entries: HashMap::from([
+                    ("1.1".to_string(), MappingType::Build),
+                    ("1.2".to_string(), MappingType::Build),
+                    ("2".to_string(), MappingType::Chore),
+                    ("3".to_string(), MappingType::Ci),
+                    ("4".to_string(), MappingType::Docs),
+                    ("5".to_string(), MappingType::Feat),
+                    ("6".to_string(), MappingType::Fix),
+                    ("7".to_string(), MappingType::Perf),
+                    ("8".to_string(), MappingType::Refactor),
+                    ("9".to_string(), MappingType::Revert),
+                    ("10".to_string(), MappingType::Style),
+                    ("11".to_string(), MappingType::Temp),
+                    ("12".to_string(), MappingType::Test),
+                ]),
+            },
         }
     }
 
@@ -472,7 +508,9 @@ mod tests {
                 remote: "myorigin".to_string(),
                 exclude_phrases: vec!["test".to_string(), "super_test".to_string()],
             },
-            mapping: HashMap::new(),
+            mapping: Mapping {
+                entries: HashMap::new(),
+            },
         }
     }
 }

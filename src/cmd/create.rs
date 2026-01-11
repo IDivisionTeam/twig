@@ -56,7 +56,7 @@ fn try_map_issue_type_to_branch_type(
         None => return Ok(BranchType::Unspecified),
     };
 
-    match mapping.get(&issue_type.id) {
+    match mapping.entries.get(&issue_type.id) {
         Some(mt) => Ok((*mt).into()),
         None => Ok(BranchType::Unspecified),
     }

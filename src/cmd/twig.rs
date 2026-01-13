@@ -19,8 +19,9 @@ enum Commands {
     // FIXME: Add missing descriptions (help).
     /// blablabla
     Clean(clean::Clean),
-    /// blablabla
-    Cfg(cfg::Cfg),
+    /// You can query/set/replace options with this command.
+    /// The name is the section and the key separated by a dot.
+    Config(cfg::Cfg),
     /// create an issue
     Create(create::Create),
     /// blablabla
@@ -40,7 +41,7 @@ pub fn execute(config: Config) -> Result<()> {
 
     match &twig.command {
         Commands::Clean(args) => clean::handle(&jira_api, args)?,
-        Commands::Cfg(args) => cfg::handle(&jira_api, args)?,
+        Commands::Config(args) => cfg::handle(args, &config)?,
         Commands::Create(args) => create::handle(&jira_api, args, &config)?,
         Commands::Init(args) => init::handle(&jira_api, args)?,
     }

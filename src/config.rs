@@ -1,17 +1,17 @@
+use figment::{
+    providers::{Format, Toml},
+    Figment,
+};
+use serde::{Deserialize, Deserializer, Serialize};
+use std::collections::BTreeMap;
+use std::fmt::Display;
 use std::{
     collections::HashMap,
-    env,
+    env, fmt,
     fs::{self, File},
     io::{self, Write},
     path::Path,
 };
-
-use figment::{
-    Figment,
-    providers::{Format, Toml},
-};
-use serde::{Deserialize, Deserializer, Serialize};
-
 use thiserror::Error;
 
 use crate::branch;
@@ -37,7 +37,7 @@ pub struct Config {
     pub credentials: Credentials,
     #[serde(default)]
     pub project: Project,
-    #[serde(default, deserialize_with = "transpose_map")]
+    #[serde(default)]
     pub mapping: Mapping,
 }
 
@@ -57,6 +57,24 @@ impl Default for Credentials {
             auth: "basic".to_string(),
             token: "your_jira_token".to_string(),
         }
+    }
+}
+
+impl Display for Credentials {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "\
+            credentials.auth={auth}\n\
+            credentials.email={email}\n\
+            credentials.host={host}\n\
+            credentials.token={token}\
+            ",
+            auth = self.auth,
+            email = self.email,
+            host = self.host,
+            token = self.token,
+        )
     }
 }
 
@@ -81,7 +99,23 @@ impl Default for Project {
     }
 }
 
-#[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Hash, Clone, Copy)]
+impl Display for Project {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "\
+            project.branch={branch}\n\
+            project.exclude_phrases=[{exclude_phrases}]\n\
+            project.remote={remote}\
+            ",
+            branch = self.branch,
+            exclude_phrases = self.exclude_phrases.join(", "),
+            remote = self.remote,
+        )
+    }
+}
+
+#[derive(Debug, Eq, PartialEq, Ord, PartialOrd, Serialize, Deserialize, Hash, Clone, Copy)]
 #[serde(rename_all = "snake_case")]
 pub enum MappingType {
     /// Changes that affect the build system or external dependencies.
@@ -129,7 +163,60 @@ impl From<MappingType> for branch::BranchType {
     }
 }
 
-pub type Mapping = HashMap<String, MappingType>;
+impl Display for MappingType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match *self {
+            MappingType::Build => write!(f, "build"),
+            MappingType::Chore => write!(f, "chore"),
+            MappingType::Ci => write!(f, "ci"),
+            MappingType::Docs => write!(f, "docs"),
+            MappingType::Feat => write!(f, "feat"),
+            MappingType::Fix => write!(f, "fix"),
+            MappingType::Perf => write!(f, "perf"),
+            MappingType::Refactor => write!(f, "refactor"),
+            MappingType::Revert => write!(f, "revert"),
+            MappingType::Style => write!(f, "style"),
+            MappingType::Temp => write!(f, "temp"),
+            MappingType::Test => write!(f, "test"),
+        }
+    }
+}
+
+#[derive(Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct Mapping {
+    #[serde(flatten, default, deserialize_with = "transpose_map")]
+    pub entries: HashMap<String, MappingType>,
+}
+
+impl Display for Mapping {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if self.entries.is_empty() {
+            return write!(f, "");
+        }
+
+        let inverted_mapping = self.entries.clone().into_iter().fold(
+            BTreeMap::<MappingType, Vec<String>>::new(),
+            |mut acc, (k, v)| {
+                acc.entry(v).or_default().push(k);
+                acc
+            },
+        );
+
+        let mut formatted_str: String = inverted_mapping
+            .into_iter()
+            .map(|(k, v)| {
+                let values = v.join(", ");
+
+                format!("mapping.{k}=[{values}]\n")
+            })
+            .collect();
+
+        // removes trailing new line
+        formatted_str.pop();
+
+        write!(f, "{}", formatted_str)
+    }
+}
 
 fn transpose_map<'de, D>(deserializer: D) -> Result<HashMap<String, MappingType>, D::Error>
 where
@@ -275,7 +362,9 @@ mod tests {
                         token: "super_secret".to_string()
                     },
                     project: Default::default(),
-                    mapping: Default::default(),
+                    mapping: Mapping {
+                        entries: Default::default()
+                    },
                 }
             );
 
@@ -389,21 +478,23 @@ mod tests {
                 remote: "myorigin".to_string(),
                 exclude_phrases: vec!["test".to_string(), "super_test".to_string()],
             },
-            mapping: HashMap::from([
-                ("1.1".to_string(), MappingType::Build),
-                ("1.2".to_string(), MappingType::Build),
-                ("2".to_string(), MappingType::Chore),
-                ("3".to_string(), MappingType::Ci),
-                ("4".to_string(), MappingType::Docs),
-                ("5".to_string(), MappingType::Feat),
-                ("6".to_string(), MappingType::Fix),
-                ("7".to_string(), MappingType::Perf),
-                ("8".to_string(), MappingType::Refactor),
-                ("9".to_string(), MappingType::Revert),
-                ("10".to_string(), MappingType::Style),
-                ("11".to_string(), MappingType::Temp),
-                ("12".to_string(), MappingType::Test),
-            ]),
+            mapping: Mapping {
+                entries: HashMap::from([
+                    ("1.1".to_string(), MappingType::Build),
+                    ("1.2".to_string(), MappingType::Build),
+                    ("2".to_string(), MappingType::Chore),
+                    ("3".to_string(), MappingType::Ci),
+                    ("4".to_string(), MappingType::Docs),
+                    ("5".to_string(), MappingType::Feat),
+                    ("6".to_string(), MappingType::Fix),
+                    ("7".to_string(), MappingType::Perf),
+                    ("8".to_string(), MappingType::Refactor),
+                    ("9".to_string(), MappingType::Revert),
+                    ("10".to_string(), MappingType::Style),
+                    ("11".to_string(), MappingType::Temp),
+                    ("12".to_string(), MappingType::Test),
+                ]),
+            },
         }
     }
 
@@ -420,7 +511,9 @@ mod tests {
                 remote: "myorigin".to_string(),
                 exclude_phrases: vec!["test".to_string(), "super_test".to_string()],
             },
-            mapping: HashMap::new(),
+            mapping: Mapping {
+                entries: HashMap::new(),
+            },
         }
     }
 }

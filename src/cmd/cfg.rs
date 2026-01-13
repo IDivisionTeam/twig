@@ -38,5 +38,5 @@ pub fn handle(args: &Cfg, config: &config::Config) -> Result<()> {
 }
 
 fn handle_list_cmd(config: &config::Config) {
-    print!("{}{}{}", config.credentials, config.project, config.mapping);
+    print!("{}\n{}\n{}", config.credentials, config.project, config.mapping);
 }

@@ -68,7 +68,7 @@ impl Display for Credentials {
             credentials.auth={auth}\n\
             credentials.email={email}\n\
             credentials.host={host}\n\
-            credentials.token={token}\n\
+            credentials.token={token}\
             ",
             auth = self.auth,
             email = self.email,
@@ -106,7 +106,7 @@ impl Display for Project {
             "\
             project.branch={branch}\n\
             project.exclude_phrases=[{exclude_phrases}]\n\
-            project.remote={remote}\n\
+            project.remote={remote}\
             ",
             branch = self.branch,
             exclude_phrases = self.exclude_phrases.join(", "),
@@ -190,6 +190,10 @@ pub struct Mapping {
 
 impl Display for Mapping {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if self.entries.is_empty() {
+            return write!(f, "");
+        }
+
         let inverted_mapping = self.entries.clone().into_iter().fold(
             BTreeMap::<MappingType, Vec<String>>::new(),
             |mut acc, (k, v)| {
@@ -207,9 +211,8 @@ impl Display for Mapping {
             })
             .collect();
 
-        if formatted_str.ends_with('\n') {
-            formatted_str.pop();
-        }
+        // removes trailing new line
+        formatted_str.pop();
 
         write!(f, "{}", formatted_str)
     }

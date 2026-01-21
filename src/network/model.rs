@@ -48,11 +48,14 @@ pub struct JiraIssueStatus {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct JiraIssueStatusFields {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub assignee: Option<JiraIssueAssignee>,
     pub status: JiraIssueStatus,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct JiraIssueStatusObject {
+    pub key: String,
     pub fields: JiraIssueStatusFields,
 }
 

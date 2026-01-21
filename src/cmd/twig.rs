@@ -17,7 +17,7 @@ struct Twig {
 #[derive(Subcommand)]
 enum Commands {
     // FIXME: Add missing descriptions (help).
-    /// blablabla
+    /// Deletes branches which have Jira tickets in 'Done' state
     Clean(clean::Clean),
     /// You can query/set/replace options with this command.
     /// The name is the section and the key separated by a dot.
@@ -40,7 +40,7 @@ pub fn execute(config: Config) -> Result<()> {
     let twig = Twig::parse();
 
     match &twig.command {
-        Commands::Clean(args) => clean::handle(&jira_api, args)?,
+        Commands::Clean(args) => clean::handle(&jira_api, args, &config)?,
         Commands::Config(args) => cfg::handle(args, &config)?,
         Commands::Create(args) => create::handle(&jira_api, args, &config)?,
         Commands::Init(args) => init::handle(&jira_api, args)?,

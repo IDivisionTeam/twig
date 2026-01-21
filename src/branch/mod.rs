@@ -1,4 +1,4 @@
 mod btype;
 mod builder;
 
-pub use {builder::Branch, btype::BranchType};
+pub use {btype::BranchType, builder::Branch, builder::ISSUE_TYPE_SEPARATOR};

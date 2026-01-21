@@ -5,7 +5,7 @@ use regex::{Error, Regex};
 use unicode_normalization::UnicodeNormalization;
 
 const BRANCH_TYPE_SEPARATOR: &str = "/";
-const ISSUE_TYPE_SEPARATOR: &str = "_";
+pub const ISSUE_TYPE_SEPARATOR: &str = "_";
 const WORD_SEPARATOR: &str = "-";
 
 const ARTICLES: [&str; 3] = ["the", "a", "an"];

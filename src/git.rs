@@ -1,12 +1,18 @@
 use std::process::Command;
 
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, bail};
+use log::debug;
 
 pub fn checkout(branch_name: &str) -> Result<String> {
+    let mut args = vec!["checkout"];
+
     if !branch_exists(branch_name)?.is_empty() {
-        return Ok("Branch already exists".to_string());
+        debug!("Branch {branch_name} is new, adding '-b' flag");
+        args.push("-b");
     }
-    execute("git", vec!["checkout", "-b", branch_name]).context("failed to checkout branch")
+
+    args.push(branch_name);
+    execute("git", args).context("failed to checkout branch")
 }
 
 pub fn push_to_remote(branch_name: &str, remote: &str) -> Result<String> {
@@ -18,6 +24,30 @@ pub fn branch_exists(branch_name: &str) -> Result<String> {
         "git",
         vec!["show-ref", &format!("refs/heads/{branch_name}")],
     )
+}
+
+pub fn fetch_prune() -> Result<String> {
+    execute("git", vec!["fetch", "-p"])
+}
+
+pub fn branch_status() -> Result<()> {
+    let output = execute("git", vec!["status", "-s"])?;
+    if !output.is_empty() {
+        bail!("current branch has uncommitted changes");
+    }
+    Ok(())
+}
+
+pub fn get_local_branches() -> Result<String> {
+    execute("git", vec!["branch"])
+}
+
+pub fn delete_local_branch(branch_name: &str) -> Result<String > {
+    execute("git", vec!["branch", "-D", branch_name])
+}
+
+pub fn delete_remote_branch(remote: &str, branch_name: &str) -> Result<String > {
+    execute("git", vec!["push", "-d", remote, branch_name])
 }
 
 fn execute(cmd: &str, args: Vec<&str>) -> Result<String> {

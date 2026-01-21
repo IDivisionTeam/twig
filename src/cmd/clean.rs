@@ -59,7 +59,18 @@ pub fn handle(jira_api: &JiraApi, args: &Clean, config: &config::Config) -> Resu
     let local_branches = git::get_local_branches()?;
     let issues = pair_branches_with_issues(&local_branches)?;
     let statuses = pair_branches_with_statuses(jira_api, issues, assignee, args.ignore_assignee)?;
-    delete_branches_if_any(delete_remote, &config.project.remote, assignee, statuses)?;
+    let deleted_any = delete_branches_if_any(delete_remote, &config.project.remote, statuses);
+
+    if !deleted_any {
+        match args.ignore_assignee {
+            true => {
+                bail!("no associated Jira issues in DONE status")
+            }
+            false => {
+                bail!("no associated Jira issues in DONE status where assignee is '{assignee}'")
+            }
+        }
+    }
 
     Ok(())
 }
@@ -120,9 +131,8 @@ fn pair_branches_with_statuses(
 fn delete_branches_if_any(
     delete_remote: bool,
     remote: &str,
-    assignee: &str,
     statuses: HashMap<String, network::model::JiraIssueStatusCategory>,
-) -> Result<()> {
+) -> bool {
     let mut any_in_done_status = false;
 
     for (branch_name, status) in statuses {
@@ -137,11 +147,7 @@ fn delete_branches_if_any(
         }
     }
 
-    if !any_in_done_status {
-        bail!("no associated Jira issues in DONE status where assignee is '{assignee}'");
-    }
-
-    Ok(())
+    any_in_done_status
 }
 
 fn query_issues(

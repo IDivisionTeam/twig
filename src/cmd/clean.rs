@@ -1,6 +1,5 @@
 use std::{collections::HashMap, sync::LazyLock};
 
-use anyhow::{Ok, Result, anyhow, bail};
 use clap::{Args, Subcommand};
 use log::{debug, info};
 use regex::Regex;
@@ -14,6 +13,43 @@ const ITEMS_THRESHOLD: usize = 5;
 const DONE_STATUS_ID: i64 = 3;
 
 static ISSUE_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"[A-Z]+-\d+_").unwrap());
+
+use thiserror::Error;
+
+#[derive(Error, Debug)]
+pub enum CleanCmdError {
+    #[error("{}", Self::no_done_issue_found(.0))]
+    NoDoneIssueFound(Option<String>),
+    #[error("email {0} is either invalid or corrupted")]
+    InvalidEmail(String),
+    #[error("no branches related to Jira issues were found")]
+    NoIssuesForBranches,
+    #[error("nothing to clean")]
+    NothingToClean,
+    #[error("failed to extract issue fromb branch '{0}'")]
+    ExtractIssueFromBranch(String),
+    #[error("validate: issue '{issue_key}' has assignee '{username}' but looking for '{assignee}'")]
+    InvalidAssignee {
+        issue_key: String,
+        username: String,
+        assignee: String,
+    },
+    #[error("git failed")]
+    GitExecute(#[from] git::GitError),
+}
+
+impl CleanCmdError {
+    fn no_done_issue_found(assignee: &Option<String>) -> String {
+        match assignee {
+            Some(assignee) => {
+                format!("no associated Jira issues in DONE status where assignee is '{assignee}'")
+            }
+            None => "no associated Jira issues in DONE status".to_string(),
+        }
+    }
+}
+
+type Result<T> = std::result::Result<T, CleanCmdError>;
 
 #[derive(Args)]
 pub struct Clean {
@@ -46,14 +82,14 @@ pub fn handle(jira_api: &JiraApi, args: &Clean, config: &config::Config) -> Resu
     let user_name = extract_username_from_email(&config.credentials.email)?;
     let assignee = args.assignee.as_ref().unwrap_or(&user_name);
 
-    let fetch_command = git::fetch_prune()?;
-    if !fetch_command.is_empty() {
-        info!("{fetch_command}");
+    let fetch_output = git::fetch_prune()?;
+    if !fetch_output.is_empty() {
+        info!("{fetch_output}");
     }
-    git::branch_status()?;
-    let checkout_command = git::checkout(&config.project.branch)?;
-    if !checkout_command.is_empty() {
-        info!("{checkout_command}");
+    git::ensure_clean_status()?;
+    let checkout_output = git::checkout(&config.project.branch)?;
+    if !checkout_output.is_empty() {
+        info!("{checkout_output}");
     }
 
     let local_branches = git::get_local_branches()?;
@@ -62,14 +98,9 @@ pub fn handle(jira_api: &JiraApi, args: &Clean, config: &config::Config) -> Resu
     let deleted_any = delete_branches_if_any(delete_remote, &config.project.remote, statuses);
 
     if !deleted_any {
-        match args.ignore_assignee {
-            true => {
-                bail!("no associated Jira issues in DONE status")
-            }
-            false => {
-                bail!("no associated Jira issues in DONE status where assignee is '{assignee}'")
-            }
-        }
+        return Err(CleanCmdError::NoDoneIssueFound(
+            (!args.ignore_assignee).then_some(assignee.clone()),
+        ));
     }
 
     Ok(())
@@ -78,7 +109,7 @@ pub fn handle(jira_api: &JiraApi, args: &Clean, config: &config::Config) -> Resu
 fn extract_username_from_email(email: &str) -> Result<String> {
     let parts = email.split("@").collect::<Vec<_>>();
     if parts.len() != 2 {
-        bail!("email {email} is either invalid or corrupted");
+        return Err(CleanCmdError::InvalidEmail(email.to_string()));
     }
 
     Ok(parts[0].to_string())
@@ -96,13 +127,13 @@ fn pair_branches_with_issues(raw_branches: &str) -> Result<HashMap<String, Strin
             continue;
         };
 
-        debug!("Branch {issue} with issue {trimmed_branch_name}");
+        debug!("Branch '{issue}' with issue '{trimmed_branch_name}'");
 
         issues.insert(trimmed_branch_name, issue);
     }
 
     if issues.is_empty() {
-        bail!("no branches related to Jira issues were found");
+        return Err(CleanCmdError::NoIssuesForBranches);
     }
 
     Ok(issues)
@@ -115,14 +146,14 @@ fn pair_branches_with_statuses(
     ignore_assignee: bool,
 ) -> Result<HashMap<String, network::model::JiraIssueStatusCategory>> {
     let statuses = if issues.len() < ITEMS_THRESHOLD {
-        query_issues(jira_api, issues, assignee, ignore_assignee)?
+        query_issues(jira_api, issues, assignee, ignore_assignee)
     } else {
         // TODO: [BR-61] implement bulk_query_issues and call it instead of query_issues
-        query_issues(jira_api, issues, assignee, ignore_assignee)?
+        query_issues(jira_api, issues, assignee, ignore_assignee)
     };
 
     if statuses.is_empty() {
-        bail!("nothing to clean");
+        return Err(CleanCmdError::NothingToClean);
     }
 
     Ok(statuses)
@@ -155,7 +186,7 @@ fn query_issues(
     issues: HashMap<String, String>,
     assignee: &str,
     ignore_assignee: bool,
-) -> Result<HashMap<String, network::model::JiraIssueStatusCategory>> {
+) -> HashMap<String, network::model::JiraIssueStatusCategory> {
     let mut statuses = HashMap::new();
 
     for (local_branch, issue) in issues {
@@ -168,7 +199,7 @@ fn query_issues(
 
         if !ignore_assignee {
             let Some(jira_assignee) = jira_issue.fields.assignee else {
-                debug!("Issue {} is unassingned, skip", jira_issue.key);
+                debug!("Issue '{}' is unassingned, skip", jira_issue.key);
                 continue;
             };
 
@@ -178,14 +209,14 @@ fn query_issues(
             }
         }
         debug!(
-            "Branch {local_branch} with status {}",
+            "Branch '{local_branch}' with status '{}'",
             jira_issue.fields.status.category.name
         );
 
         statuses.insert(local_branch, jira_issue.fields.status.category);
     }
 
-    Ok(statuses)
+    statuses
 }
 
 fn extract_issue_name_from_branch(branch_name: &str) -> Result<String> {
@@ -193,7 +224,7 @@ fn extract_issue_name_from_branch(branch_name: &str) -> Result<String> {
 
     let issue_name = ISSUE_REGEX
         .find(branch_name)
-        .ok_or_else(|| anyhow!("no issue match"))?
+        .ok_or_else(|| CleanCmdError::ExtractIssueFromBranch(branch_name.to_string()))?
         .as_str()
         .trim();
 
@@ -209,9 +240,11 @@ fn validate_jira_issue(issue_key: &str, email: &str, assignee: &str) -> Result<(
     let username = extract_username_from_email(email)?;
 
     if assignee.trim() != username {
-        bail!(
-            "validate: issue '{issue_key}' has assignee '{username}' but looking for '{assignee}'"
-        );
+        return Err(CleanCmdError::InvalidAssignee {
+            issue_key: issue_key.to_string(),
+            username,
+            assignee: assignee.to_string(),
+        });
     }
 
     Ok(())
@@ -219,7 +252,7 @@ fn validate_jira_issue(issue_key: &str, email: &str, assignee: &str) -> Result<(
 
 fn delete_local_branch(branch_name: &str) {
     match git::delete_local_branch(branch_name) {
-        std::result::Result::Ok(output) => {
+        Ok(output) => {
             info!("{output}");
         }
         Err(err) => {
@@ -230,7 +263,7 @@ fn delete_local_branch(branch_name: &str) {
 
 fn delete_remote_branch(remote: &str, branch_name: &str) {
     match git::delete_remote_branch(remote, branch_name) {
-        std::result::Result::Ok(output) => {
+        Ok(output) => {
             info!("{output}");
         }
         Err(err) => {

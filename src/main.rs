@@ -4,7 +4,6 @@ mod config;
 mod git;
 mod network;
 
-use std::env;
 
 use anyhow::Result;
 use cmd::twig;

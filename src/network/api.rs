@@ -40,10 +40,9 @@ impl JiraApi {
         todo!()
     }
 
-    #[allow(dead_code)]
     pub fn get_jira_issue_status(
         &self,
-        issue_key: String,
+        issue_key: &str,
         has_assignee: bool,
     ) -> Result<JiraIssueStatusObject> {
         let mut fields = "status".to_string();

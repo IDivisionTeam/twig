@@ -12,6 +12,7 @@ use std::{
     io::{self, Write},
     path::Path,
 };
+use figment::value::Value;
 use thiserror::Error;
 
 use crate::branch;
@@ -24,6 +25,8 @@ pub enum ConfigError {
     Parse(#[from] toml::ser::Error),
     #[error("failed to create file")]
     File(#[from] io::Error),
+    #[error("failed to get config file")]
+    MissingConfig,
 }
 
 impl From<figment::Error> for ConfigError {
@@ -235,6 +238,26 @@ where
     }
 
     Ok(transposed)
+}
+
+pub fn read_config_value(key: &str) -> Result<Option<Value>, ConfigError> {
+    let global_config_exists = Path::new(&get_config_global_path()).exists();
+    let local_config_exists = Path::new(&get_config_local_path()).exists();
+
+    if !global_config_exists && !local_config_exists {
+        return Err(ConfigError::MissingConfig);
+    }
+
+    let mut f = Figment::new();
+    if global_config_exists {
+        f = f.merge(Toml::file(get_config_global_path()));
+    }
+    if local_config_exists {
+        f = f.merge(Toml::file(get_config_local_path()));
+    }
+
+    let value: Option<Value> = f.find_value(key).ok();
+    Ok(value)
 }
 
 pub fn read_config() -> Result<Config, ConfigError> {

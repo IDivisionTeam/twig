@@ -4,7 +4,8 @@ on:
   push:
     branches: [ "main-rs" ]
   pull_request:
-    branches: [ "main-rs" ]
+    types: [review_requested]
+    branches: [ "main-rs", "feat/**" ]
 
 env:
   CARGO_TERM_COLOR: always

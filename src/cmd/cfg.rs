@@ -37,7 +37,7 @@ pub enum ConfigCmdError {
 pub fn handle(args: &Cfg, config: &config::Config) -> Result<()> {
     match &args.command {
         Commands::List => handle_list_cmd(config),
-        Commands::Get { name } => handle_get_cmd(&name)?,
+        Commands::Get { name } => handle_get_cmd(name)?,
         #[allow(unused_variables)]
         Commands::Set { name, value } => {
             todo!()

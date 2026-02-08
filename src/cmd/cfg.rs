@@ -31,7 +31,7 @@ pub enum ConfigCmdError {
     #[error("failed to get value by key {0}")]
     InvalidKey(String),
     #[error("failed to deserialize value")]
-    DeserializeValue(),
+    DeserializeValue,
 }
 
 pub fn handle(args: &Cfg, config: &config::Config) -> Result<()> {
@@ -65,6 +65,6 @@ fn handle_get_cmd(name: &str) -> Result<()> {
             println!("{}", v);
             Ok(())
         }
-        None => Err(ConfigCmdError::DeserializeValue()),
+        None => Err(ConfigCmdError::DeserializeValue),
     }
 }

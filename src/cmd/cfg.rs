@@ -60,15 +60,9 @@ fn handle_get_cmd(name: &str) -> Result<()> {
     let value: Value =
         read_config_value(name)?.ok_or(ConfigCmdError::InvalidKey(name.to_string()))?;
 
-    let value_to_print = print_value(&value);
-    match value_to_print {
-        Some(v) => {
-            println!("{}", v);
-            Ok(())
-        }
-
-        None => Err(ConfigCmdError::UnexpectedError),
-    }
+    let value_to_print = print_value(&value).ok_or(ConfigCmdError::UnexpectedError)?;
+    println!("{value_to_print}");
+    Ok(())
 }
 
 fn print_value(value: &Value) -> Option<String> {

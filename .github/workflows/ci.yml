@@ -4,7 +4,7 @@ on:
   push:
     branches: [ "main-rs" ]
   pull_request:
-    branches: [ "main-rs" ]
+    branches: [ "main-rs", "feat/**" ]
 
 env:
   CARGO_TERM_COLOR: always

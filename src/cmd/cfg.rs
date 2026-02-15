@@ -89,9 +89,9 @@ fn print_value(value: &Value) -> Option<String> {
         ),
         Value::Dict(_, map) => Some(
             map.iter()
-                .filter_map(|(k, v)| {
-                    let value = print_value(v).unwrap_or(String::new());
-                    Some(format!("{} = {}", k, value))
+                .map(|(k, v)| {
+                    let value = print_value(v).unwrap_or_default();
+                    format!("{} = {}", k, value)
                 })
                 .collect::<Vec<_>>()
                 .join("\n"),

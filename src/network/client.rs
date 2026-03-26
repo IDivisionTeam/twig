@@ -1,11 +1,15 @@
 use crate::network::model::{AUTH_BASIC, AUTH_BEARER, Credentials};
-use anyhow::{Context, Result};
+use anyhow::{Context, Ok, Result};
 use base64::Engine;
 use base64::engine::general_purpose;
 use reqwest::blocking::{Client, ClientBuilder, RequestBuilder};
-use reqwest::{Method, header};
-use serde::Serialize;
+use reqwest::{Method, blocking::Response, header};
 use serde::de::DeserializeOwned;
+use serde::Serialize;
+
+pub trait ApiError {
+    fn errors(&self) -> Vec<String>;
+}
 
 pub struct TwigClient {
     host: String,
@@ -22,27 +26,29 @@ impl TwigClient {
         Ok(Self { host, client })
     }
 
-    pub fn get<T: DeserializeOwned>(&self, path: &str, params: Vec<(&str, &str)>) -> Result<T> {
-        let response = self
-            .request(Method::GET, path)
-            .query(&params)
-            .send()?
-            .error_for_status()
-            .context("failed to send GET request")?;
-        response.json::<T>().context("failed to parse GET response")
+    pub fn get<T: DeserializeOwned, E: ApiError + DeserializeOwned>(
+        &self,
+        path: &str,
+        params: Vec<(&str, &str)>,
+    ) -> Result<T> {
+        let response = self.request(Method::GET, path).query(&params).send()?;
+        raise_for_status::<E>(response)
+            .context("GET request failed")?
+            .json::<T>()
+            .context("failed to parse GET response")
     }
 
     #[allow(dead_code)]
-    pub fn post<T: DeserializeOwned, S: Serialize>(&self, path: &str, body: S) -> Result<T> {
-        let response = self
-            .request(Method::POST, path)
-            .json(&body)
-            .send()?
-            .error_for_status()
-            .context("failed to send POST request")?;
-        response
+    pub fn post<T: DeserializeOwned, S: Serialize, E: ApiError + DeserializeOwned>(
+        &self,
+        path: &str,
+        body: S,
+    ) -> Result<T> {
+        let response = self.request(Method::POST, path).json(&body).send()?;
+        raise_for_status::<E>(response)
+            .context("GET request failed")?
             .json::<T>()
-            .context("failed to parse POST response")
+            .context("failed to parse GET response")
     }
 
     fn request(&self, method: Method, path: &str) -> RequestBuilder {
@@ -78,4 +84,16 @@ fn create_auth_header(credentials: &Credentials) -> String {
 fn basic_auth(username: &str, password: &str) -> String {
     let auth = format!("{}:{}", username, password);
     general_purpose::STANDARD.encode(auth.as_bytes())
+}
+
+fn raise_for_status<E: ApiError + DeserializeOwned>(response: Response) -> Result<Response> {
+    if let Err(err) = response.error_for_status_ref() {
+        let mut all_errors = anyhow::Error::new(err);
+        let error_response = response.json::<E>().unwrap();
+        for err in error_response.errors() {
+            all_errors = all_errors.context(err.clone());
+        }
+        return Err(all_errors);
+    }
+    Ok(response)
 }

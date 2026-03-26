@@ -2,6 +2,8 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::network::client::ApiError;
+
 pub const AUTH_BASIC: &str = "basic";
 pub const AUTH_BEARER: &str = "bearer";
 
@@ -90,6 +92,12 @@ pub struct JiraIssueBulkRequest {
 pub struct JiraError {
     #[serde(rename = "errorMessages")]
     pub messages: Option<Vec<String>>,
+}
+
+impl ApiError for JiraError {
+    fn errors(&self) -> Vec<String> {
+        self.messages.clone().unwrap_or_default()
+    }
 }
 
 pub struct Credentials {

@@ -1,9 +1,10 @@
 use anyhow::{Context, Result};
+use serde::{Serialize, de::DeserializeOwned};
 
 use crate::network::{
     client::TwigClient,
     model::{
-        Credentials, JiraIssue, JiraIssueBulkRequest, JiraIssueStatusBulkResponse,
+        Credentials, JiraError, JiraIssue, JiraIssueBulkRequest, JiraIssueStatusBulkResponse,
         JiraIssueStatusObject, JiraIssueType,
     },
 };
@@ -18,21 +19,27 @@ impl JiraApi {
         Ok(Self { client })
     }
 
+    fn get<T: DeserializeOwned>(&self, path: &str, params: Vec<(&str, &str)>) -> Result<T> {
+        self.client.get::<T, JiraError>(path, params)
+    }
+
+    fn post<T: DeserializeOwned, S: Serialize>(&self, path: &str, body: S) -> Result<T> {
+        self.client.post::<T, S, JiraError>(path, body)
+    }
+
     #[allow(dead_code)]
     pub fn get_jira_issue_types(&self) -> Result<Vec<JiraIssueType>> {
-        self.client
-            .get("issuetype", vec![])
+        self.get("issuetype", vec![])
             .context("failed to get jira issues types")
     }
 
     #[allow(dead_code)]
     pub fn get_jira_issue(&self, issue_key: &str) -> Result<JiraIssue> {
-        self.client
-            .get(
-                &format!("issue/{issue_key}"),
-                vec![("fields", "issuetype,summary")],
-            )
-            .context("failed to get jira issues types")
+        self.get(
+            &format!("issue/{issue_key}"),
+            vec![("fields", "issuetype,summary")],
+        )
+        .context("failed to get jira issues types")
     }
 
     #[allow(dead_code)]
@@ -49,8 +56,7 @@ impl JiraApi {
         if has_assignee {
             fields = format!("{fields},assignee");
         }
-        self.client
-            .get(&format!("issue/{issue_key}"), vec![("fields", &fields)])
+        self.get(&format!("issue/{issue_key}"), vec![("fields", &fields)])
             .context("failed to get jira issues types")
     }
 
@@ -66,8 +72,7 @@ impl JiraApi {
         }
 
         let body = JiraIssueBulkRequest { fields, issue_keys };
-        self.client
-            .post("issue/bulkfetch", body)
+        self.post("issue/bulkfetch", body)
             .context("failed to get jira issues statutes")
     }
 }

@@ -1,6 +1,5 @@
 #![allow(dead_code)]
 
-use crate::branch::btype::BranchType;
 use regex::{Error, Regex};
 use unicode_normalization::UnicodeNormalization;
 
@@ -9,6 +8,13 @@ pub const ISSUE_TYPE_SEPARATOR: &str = "_";
 const WORD_SEPARATOR: &str = "-";
 
 const ARTICLES: [&str; 3] = ["the", "a", "an"];
+
+/// Categorizes branches by the primary type of change they introduce.
+///
+/// This enum is intended for use with conventional-commit–style workflows
+/// and branch naming, where each branch represents a single dominant intent
+/// (e.g. feature development, bug fixes, refactoring, or maintenance).
+pub type BranchType = Option<String>;
 
 // FIXME: this object is responsible for many things. Should be decomposed into several objects instead.
 //  Current implementation almost direct copy of the Branch class in Golang. Most parts were unchanged to preserve the behavior.
@@ -48,7 +54,7 @@ impl Branch {
     pub fn build_name(&self, key: &str, summary: &Option<String>) -> String {
         let mut buffer: String = String::new();
 
-        buffer = append_branch_type(&self.branch_type, &buffer);
+        buffer = append_branch_type(self.branch_type.as_deref(), &buffer);
         buffer = append_issue_key(key, &buffer);
         buffer = append_issue_summary(
             &self.exclude_phrases,
@@ -125,12 +131,11 @@ fn append_issue_summary(
 
 /// Returns a new `String` containing the original `buffer` followed by the [BranchType]
 /// and [BRANCH_TYPE_SEPARATOR] if the type is specified; otherwise returns the original `buffer`.
-fn append_branch_type(branch_type: &BranchType, buffer: &str) -> String {
-    if branch_type.is_unspecified() {
-        return buffer.to_owned();
+fn append_branch_type(branch_type: Option<&str>, buffer: &str) -> String {
+    match branch_type {
+        Some(branch_type) => format!("{buffer}{branch_type}{BRANCH_TYPE_SEPARATOR}"),
+        None => buffer.to_owned(),
     }
-
-    format!("{}{}{}", buffer, branch_type, BRANCH_TYPE_SEPARATOR)
 }
 
 /// Returns a new `String` containing issue key and [ISSUE_TYPE_SEPARATOR] appended to the given string.
@@ -219,7 +224,7 @@ mod tests {
         let expected = String::new();
         let mut buffer = String::new();
 
-        append_branch_type(&BranchType::Unspecified, &mut buffer);
+        append_branch_type(None, &mut buffer);
 
         let actual = buffer;
         assert_eq!(expected, actual);
@@ -228,7 +233,7 @@ mod tests {
     #[test]
     fn append_branch_type_adds_branch_type_when_specified() {
         let expected = format!("feat{}", BRANCH_TYPE_SEPARATOR);
-        let actual = append_branch_type(&BranchType::Feature, "");
+        let actual = append_branch_type(Some("feat"), "");
 
         assert_eq!(expected, actual);
     }
@@ -348,7 +353,7 @@ mod tests {
     #[test]
     fn branch_build_name_constructs_correct_branch_name() {
         let expected = String::from("fix/TST-101_my-super-branch-summary");
-        let branch_type = BranchType::Fix;
+        let branch_type = Some("fix".to_string());
         let subject = Branch::new(branch_type, EXCLUDE_PHRASES.to_vec());
 
         let actual = subject.build_name(
@@ -361,7 +366,7 @@ mod tests {
     #[test]
     fn branch_build_name_handles_acronym_case_correctly() {
         let expected = String::from("ci/TST-101_my-super-branch-summary-http-client");
-        let branch_type = BranchType::Ci;
+        let branch_type = Some("ci".to_string());
         let subject = Branch::new(branch_type, EXCLUDE_PHRASES.to_vec());
 
         let actual = subject.build_name(
@@ -374,7 +379,7 @@ mod tests {
     #[test]
     fn branch_build_name_handles_numeric_acronym_case_correctly() {
         let expected = String::from("build/TST-101_my-super-branch-summary-j2k");
-        let branch_type = BranchType::Build;
+        let branch_type = Some("build".to_string());
         let subject = Branch::new(branch_type, EXCLUDE_PHRASES.to_vec());
 
         let actual = subject.build_name(

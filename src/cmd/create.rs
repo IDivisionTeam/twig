@@ -2,11 +2,7 @@ use anyhow::Result;
 use clap::Args;
 use log::info;
 
-use crate::{
-    branch::*,
-    config, git,
-    network::{api::JiraApi, model::JiraIssueType},
-};
+use crate::{branch::*, config, git, network::api::JiraApi};
 
 #[derive(Args)]
 pub struct Create {
@@ -22,10 +18,7 @@ pub struct Create {
 pub fn handle(jira_api: &JiraApi, args: &Create, config: &config::Config) -> Result<()> {
     let jira_issue = jira_api.get_jira_issue(&args.issue)?;
 
-    let branch_type = match &args._type {
-        Some(_type) => _type.parse()?,
-        None => try_map_issue_type_to_branch_type(&jira_issue.fields.issue_type, &config.mapping)?,
-    };
+    let branch_type: BranchType = args._type.clone();
 
     let exclude_phrases = config
         .project
@@ -45,19 +38,4 @@ pub fn handle(jira_api: &JiraApi, args: &Create, config: &config::Config) -> Res
     }
 
     Ok(())
-}
-
-fn try_map_issue_type_to_branch_type(
-    issue_type: &Option<JiraIssueType>,
-    mapping: &config::Mapping,
-) -> Result<BranchType> {
-    let issue_type = match issue_type {
-        Some(it) => it,
-        None => return Ok(BranchType::Unspecified),
-    };
-
-    match mapping.entries.get(&issue_type.id) {
-        Some(mt) => Ok((*mt).into()),
-        None => Ok(BranchType::Unspecified),
-    }
 }

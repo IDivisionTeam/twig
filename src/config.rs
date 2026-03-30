@@ -1,6 +1,7 @@
+use figment::value::Value;
 use figment::{
-    providers::{Format, Toml},
     Figment,
+    providers::{Format, Toml},
 };
 use serde::{Deserialize, Deserializer, Serialize};
 use std::collections::BTreeMap;
@@ -12,10 +13,7 @@ use std::{
     io::{self, Write},
     path::Path,
 };
-use figment::value::Value;
 use thiserror::Error;
-
-use crate::branch;
 
 #[derive(Error, Debug)]
 pub enum ConfigError {
@@ -118,72 +116,7 @@ impl Display for Project {
     }
 }
 
-#[derive(Debug, Eq, PartialEq, Ord, PartialOrd, Serialize, Deserialize, Hash, Clone, Copy)]
-#[serde(rename_all = "snake_case")]
-pub enum MappingType {
-    /// Changes that affect the build system or external dependencies.
-    Build,
-    /// Routine maintenance tasks that do not modify source or test files.
-    Chore,
-    /// Changes to the CI configuration files and scripts.
-    Ci,
-    /// Documentation only changes.
-    Docs,
-    /// A new feature.
-    Feat,
-    /// A bug fix.
-    Fix,
-    /// A code change that improves performance.
-    Perf,
-    /// A code change that neither fixes a bug nor adds a feature.
-    Refactor,
-    /// Reverts a previous commit(s).
-    Revert,
-    /// Changes that do not affect the meaning of the code (white-space, formatting, missing semicolons, etc.).
-    Style,
-    /// Temporary or experimental changes not intended for long-term use.
-    Temp,
-    /// Adding missing tests or correcting existing tests.
-    Test,
-}
-
-impl From<MappingType> for branch::BranchType {
-    fn from(value: MappingType) -> Self {
-        match value {
-            MappingType::Build => branch::BranchType::Build,
-            MappingType::Chore => branch::BranchType::Chore,
-            MappingType::Ci => branch::BranchType::Ci,
-            MappingType::Docs => branch::BranchType::Docs,
-            MappingType::Feat => branch::BranchType::Feature,
-            MappingType::Fix => branch::BranchType::Fix,
-            MappingType::Perf => branch::BranchType::Performance,
-            MappingType::Refactor => branch::BranchType::Refactor,
-            MappingType::Revert => branch::BranchType::Revert,
-            MappingType::Style => branch::BranchType::Style,
-            MappingType::Temp => branch::BranchType::Temporary,
-            MappingType::Test => branch::BranchType::Test,
-        }
-    }
-}
-
-impl Display for MappingType {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match *self {
-            MappingType::Build => write!(f, "build"),
-            MappingType::Chore => write!(f, "chore"),
-            MappingType::Ci => write!(f, "ci"),
-            MappingType::Docs => write!(f, "docs"),
-            MappingType::Feat => write!(f, "feat"),
-            MappingType::Fix => write!(f, "fix"),
-            MappingType::Perf => write!(f, "perf"),
-            MappingType::Refactor => write!(f, "refactor"),
-            MappingType::Revert => write!(f, "revert"),
-            MappingType::Style => write!(f, "style"),
-            MappingType::Temp => write!(f, "temp"),
-            MappingType::Test => write!(f, "test"),
-        }
-    }
-}
+pub type MappingType = String;
 
 #[derive(Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct Mapping {
@@ -233,7 +166,7 @@ where
             if value == "0" {
                 continue;
             }
-            transposed.entry(value).or_insert(key);
+            transposed.entry(value).or_insert(key.clone());
         }
     }
 
@@ -503,19 +436,19 @@ mod tests {
             },
             mapping: Mapping {
                 entries: HashMap::from([
-                    ("1.1".to_string(), MappingType::Build),
-                    ("1.2".to_string(), MappingType::Build),
-                    ("2".to_string(), MappingType::Chore),
-                    ("3".to_string(), MappingType::Ci),
-                    ("4".to_string(), MappingType::Docs),
-                    ("5".to_string(), MappingType::Feat),
-                    ("6".to_string(), MappingType::Fix),
-                    ("7".to_string(), MappingType::Perf),
-                    ("8".to_string(), MappingType::Refactor),
-                    ("9".to_string(), MappingType::Revert),
-                    ("10".to_string(), MappingType::Style),
-                    ("11".to_string(), MappingType::Temp),
-                    ("12".to_string(), MappingType::Test),
+                    ("1.1".to_string(), "build".to_string()),
+                    ("1.2".to_string(), "build".to_string()),
+                    ("2".to_string(), "chore".to_string()),
+                    ("3".to_string(), "ci".to_string()),
+                    ("4".to_string(), "docs".to_string()),
+                    ("5".to_string(), "feat".to_string()),
+                    ("6".to_string(), "fix".to_string()),
+                    ("7".to_string(), "perf".to_string()),
+                    ("8".to_string(), "refactor".to_string()),
+                    ("9".to_string(), "revert".to_string()),
+                    ("10".to_string(), "style".to_string()),
+                    ("11".to_string(), "temp".to_string()),
+                    ("12".to_string(), "test".to_string()),
                 ]),
             },
         }

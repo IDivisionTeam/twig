@@ -15,7 +15,7 @@ jobs:
 
     if: ${{ (github.event_name == 'push' || github.event_name == 'pull_request') && !contains(github.event.head_commit.message, 'docs:') }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Rust
         run: rustup update stable && rustup default stable

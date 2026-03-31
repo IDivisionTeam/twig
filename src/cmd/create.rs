@@ -3,6 +3,7 @@ use clap::Args;
 use log::info;
 
 use crate::{branch::*, config, git, network::api::JiraApi};
+use crate::network::model::JiraIssueType;
 
 #[derive(Args)]
 pub struct Create {
@@ -18,7 +19,7 @@ pub struct Create {
 pub fn handle(jira_api: &JiraApi, args: &Create, config: &config::Config) -> Result<()> {
     let jira_issue = jira_api.get_jira_issue(&args.issue)?;
 
-    let branch_type: BranchType = args._type.clone();
+    let branch_type: BranchType = args._type.clone().or(try_map_issue_type_to_branch_type(&jira_issue.fields.issue_type, &config.mapping));
 
     let exclude_phrases = config
         .project
@@ -38,4 +39,11 @@ pub fn handle(jira_api: &JiraApi, args: &Create, config: &config::Config) -> Res
     }
 
     Ok(())
+}
+
+fn try_map_issue_type_to_branch_type(
+    issue_type: &Option<JiraIssueType>,
+    mapping: &config::Mapping,
+) -> BranchType {
+    issue_type.as_ref().and_then(|it|  mapping.entries.get(&it.id)).cloned()
 }

@@ -1,22 +1,32 @@
 use anyhow::{Context, Result};
 use serde::{Serialize, de::DeserializeOwned};
 
-use crate::network::{
-    client::TwigClient,
-    model::{
-        Credentials, JiraError, JiraIssue, JiraIssueBulkRequest, JiraIssueStatusBulkResponse,
-        JiraIssueStatusObject, JiraIssueType,
-    },
+use crate::network::client::ApiError;
+use crate::network::model::{
+    JiraError, JiraIssue, JiraIssueBulkRequest, JiraIssueStatusBulkResponse, JiraIssueStatusObject,
+    JiraIssueType,
 };
 
-pub struct JiraApi {
-    client: TwigClient,
+pub trait HttpClient {
+    fn get<T: DeserializeOwned, E: ApiError + DeserializeOwned>(
+        &self,
+        path: &str,
+        params: Vec<(&str, &str)>,
+    ) -> Result<T>;
+
+    fn post<T: DeserializeOwned, S: Serialize, E: ApiError + DeserializeOwned>(
+        &self,
+        path: &str,
+        body: S,
+    ) -> Result<T>;
+}
+pub struct JiraApi<C: HttpClient> {
+    client: C,
 }
 
-impl JiraApi {
-    pub fn new(credentials: Credentials) -> Result<JiraApi> {
-        let client = TwigClient::new(credentials)?;
-        Ok(Self { client })
+impl<C: HttpClient> JiraApi<C> {
+    pub fn new(client: C) -> JiraApi<C> {
+        Self { client }
     }
 
     fn get<T: DeserializeOwned>(&self, path: &str, params: Vec<(&str, &str)>) -> Result<T> {
@@ -33,7 +43,6 @@ impl JiraApi {
             .context("failed to get jira issues types")
     }
 
-    #[allow(dead_code)]
     pub fn get_jira_issue(&self, issue_key: &str) -> Result<JiraIssue> {
         self.get(
             &format!("issue/{issue_key}"),

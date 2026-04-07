@@ -5,14 +5,18 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum GitError {
-    #[error("failed to execute command")]
+    #[error("failed to execute git command")]
     Execute(#[from] io::Error),
+    #[error("git command failed: {0}")]
+    Failed(String),
     #[error("failed to get output")]
     Output(#[from] std::string::FromUtf8Error),
     #[error("failed to checkout branch")]
-    CheckoutBranch,
+    CheckoutBranch(#[source] Box<GitError>),
+    #[error("failed to check if branch exists")]
+    CheckBranchIfExists(#[source] Box<GitError>),
     #[error("failed to push branch to remote")]
-    Push,
+    Push(#[source] Box<GitError>),
     #[error("current branch has uncommitted changes")]
     BranchNotClean,
 }
@@ -28,27 +32,31 @@ pub fn checkout(branch_name: &str) -> Result<String> {
     }
 
     args.push(branch_name);
-    execute("git", args).map_err(|_| GitError::CheckoutBranch)
+    execute(args).map_err(|err| GitError::CheckoutBranch(Box::new(err)))
 }
 
 pub fn push_to_remote(branch_name: &str, remote: &str) -> Result<String> {
-    execute("git", vec!["push", "-u", remote, branch_name]).map_err(|_| GitError::Push)
+    execute(vec!["push", "-u", remote, branch_name]).map_err(|err| GitError::Push(Box::new(err)))
 }
 
 pub fn branch_exists(branch_name: &str) -> Result<bool> {
-    let output = execute(
-        "git",
-        vec!["show-ref", &format!("refs/heads/{branch_name}")],
-    )?;
-    Ok(!output.is_empty())
+    match execute(vec![
+        "show-ref",
+        "--exists",
+        &format!("refs/heads/{branch_name}"),
+    ]) {
+        Ok(_) => Ok(true),
+        Err(GitError::Failed(ref msg)) if msg.contains("reference does not exist") => Ok(false),
+        Err(e) => Err(GitError::CheckBranchIfExists(Box::new(e))),
+    }
 }
 
 pub fn fetch_prune() -> Result<String> {
-    execute("git", vec!["fetch", "-p"])
+    execute(vec!["fetch", "-p"])
 }
 
 pub fn ensure_clean_status() -> Result<()> {
-    let output = execute("git", vec!["status", "-s"])?;
+    let output = execute(vec!["status", "-s"])?;
     if !output.is_empty() {
         return Err(GitError::BranchNotClean);
     }
@@ -56,23 +64,34 @@ pub fn ensure_clean_status() -> Result<()> {
 }
 
 pub fn get_local_branches() -> Result<String> {
-    execute("git", vec!["branch"])
+    execute(vec!["branch"])
 }
 
 pub fn delete_local_branch(branch_name: &str) -> Result<String> {
-    execute("git", vec!["branch", "-D", branch_name])
+    execute(vec!["branch", "-D", branch_name])
 }
 
 pub fn delete_remote_branch(remote: &str, branch_name: &str) -> Result<String> {
-    execute("git", vec!["push", "-d", remote, branch_name])
+    execute(vec!["push", "-d", remote, branch_name])
 }
 
-fn execute(cmd: &str, args: Vec<&str>) -> Result<String> {
-    let output = Command::new(cmd).args(args.as_slice()).output()?;
+pub fn execute(args: Vec<&str>) -> Result<String> {
+    let output = Command::new("git").args(args.as_slice()).output()?;
 
-    Ok(if output.stdout.is_empty() {
-        String::from_utf8(output.stderr)
+    let stdout = String::from_utf8(output.stdout)?;
+    let stderr = String::from_utf8(output.stderr)?;
+
+    if output.status.success() {
+        Ok(if stdout.is_empty() { stderr } else { stdout })
     } else {
-        String::from_utf8(output.stdout)
-    }?)
+        let error_msg = if !stderr.is_empty() {
+            stderr
+        } else if !stdout.is_empty() {
+            stdout
+        } else {
+            format!("exit code: {:?}", output.status.code())
+        };
+
+        Err(GitError::Failed(error_msg))
+    }
 }

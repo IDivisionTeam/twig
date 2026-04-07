@@ -2,6 +2,7 @@ use anyhow::Result;
 use clap::Args;
 
 use crate::{config, network::api::JiraApi};
+use crate::network::api::HttpClient;
 
 #[derive(Args)]
 pub struct Init {
@@ -10,7 +11,7 @@ pub struct Init {
     global: bool,
 }
 
-pub fn handle(_: &JiraApi, args: &Init) -> Result<()> {
+pub fn handle<C: HttpClient>(_: &JiraApi<C>, args: &Init) -> Result<()> {
     let config_path = if args.global {
         config::get_config_global_path()
     } else {

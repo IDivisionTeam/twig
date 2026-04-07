@@ -5,6 +5,7 @@ use crate::cmd::{cfg, clean, create, init};
 use crate::config::Config;
 use crate::network;
 use crate::network::api::JiraApi;
+use crate::network::client::TwigClient;
 
 // To add styling, see https://docs.rs/clap/latest/clap/_derive/_cookbook/cargo_example_derive/index.html
 #[derive(Parser)]
@@ -35,7 +36,7 @@ pub fn execute(config: Config) -> Result<()> {
         auth: config.credentials.auth.clone(),
         token: config.credentials.token.clone(),
     };
-    let jira_api = JiraApi::new(credentials)?;
+    let jira_api = JiraApi::new(TwigClient::new(credentials)?);
 
     let twig = Twig::parse();
 

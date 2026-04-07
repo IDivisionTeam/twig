@@ -2,9 +2,9 @@ use anyhow::Result;
 use clap::Args;
 use log::info;
 
-use crate::{branch::*, config, git, network::api::JiraApi};
 use crate::network::api::HttpClient;
 use crate::network::model::JiraIssueType;
+use crate::{branch::*, config, git, network::api::JiraApi};
 
 #[derive(Args)]
 pub struct Create {
@@ -17,10 +17,17 @@ pub struct Create {
     push: bool,
 }
 
-pub fn handle<C: HttpClient>(jira_api: &JiraApi<C>, args: &Create, config: &config::Config) -> Result<()> {
+pub fn handle<C: HttpClient>(
+    jira_api: &JiraApi<C>,
+    args: &Create,
+    config: &config::Config,
+) -> Result<()> {
     let jira_issue = jira_api.get_jira_issue(&args.issue)?;
 
-    let branch_type: BranchType = args._type.clone().or(try_map_issue_type_to_branch_type(&jira_issue.fields.issue_type, &config.mapping));
+    let branch_type: BranchType = args._type.clone().or(try_map_issue_type_to_branch_type(
+        &jira_issue.fields.issue_type,
+        &config.mapping,
+    ));
 
     let exclude_phrases = config
         .project
@@ -46,32 +53,186 @@ fn try_map_issue_type_to_branch_type(
     issue_type: &Option<JiraIssueType>,
     mapping: &config::Mapping,
 ) -> BranchType {
-    issue_type.as_ref().and_then(|it|  mapping.entries.get(&it.id)).cloned()
+    issue_type
+        .as_ref()
+        .and_then(|it| mapping.entries.get(&it.id))
+        .cloned()
 }
 
-//
-// #[cfg(test)]
-// mod tests {
-//     use serde::de::DeserializeOwned;
-//     use serde::Serialize;
-//     use crate::network::client::ApiError;
-//     use super::*;
-//
-//     struct MockClient;
-//
-//     impl HttpClient for MockClient {
-//         fn get<T: DeserializeOwned, E: ApiError + DeserializeOwned>(&self, path: &str, params: Vec<(&str, &str)>) -> Result<T> {
-//             todo!()
-//         }
-//
-//         fn post<T: DeserializeOwned, S: Serialize, E: ApiError + DeserializeOwned>(&self, path: &str, body: S) -> Result<T> {
-//             todo!()
-//         }
-//     }
-//
-//     #[test]
-//     fn test_handle() {
-//
-//     }
-//
-// }
+#[cfg(test)]
+mod tests {
+    use std::collections::HashMap;
+
+    use super::*;
+    use crate::git;
+    use crate::network::client::ApiError;
+    use figment::Jail;
+    use rstest::rstest;
+    use serde::Serialize;
+    use serde::de::DeserializeOwned;
+
+    #[rstest]
+    #[case::from_type_arg(Some("test-type".to_string()), "test-type")]
+    #[case::from_mapping(None, "test-mapping-type")]
+    fn test_handle_branch_type(
+        #[case] branch_type_arg: BranchType,
+        #[case] branch_type_prefix: String,
+    ) {
+        Jail::expect_with(|_| {
+            let args = Create {
+                issue: "test-issue".to_string(),
+                _type: branch_type_arg,
+                push: false,
+            };
+
+            let config = config::Config {
+                credentials: config::Credentials::default(),
+                project: config::Project::default(),
+                mapping: config::Mapping {
+                    entries: HashMap::from([(
+                        "test-branch-type".to_string(),
+                        branch_type_prefix.to_string(),
+                    )]),
+                },
+            };
+
+            git::execute(vec!["init"]).unwrap();
+            git::execute(vec!["commit", "--allow-empty", "-m", "Initial commit"]).unwrap();
+
+            let mut mock_client = MockClient::new();
+            let mock_response = serde_json::json!({
+                "id": "test-id",
+                "key": "test-key",
+                "fields": {
+                    "issuetype": {
+                        "id": "test-branch-type",
+                        "name": "issue-type-name"
+                    },
+                    "summary": "This is a mock summary",
+                    "status": null,
+                    "assignee": null
+                }
+            });
+            mock_client.set_get_response(mock_response);
+            handle(&JiraApi::new(mock_client), &args, &config).unwrap();
+
+            let new_branch = git::execute(vec!["branch", "--show-current"]).unwrap();
+
+            assert_eq!(
+                branch_type_prefix + "/test-key_this-is-mock-summary",
+                new_branch.trim()
+            );
+            Ok(())
+        })
+    }
+
+    #[rstest]
+    fn test_handle_pushed_to_remote() {
+        Jail::expect_with(|jail| {
+            let args = Create {
+                issue: "test-issue".to_string(),
+                _type: None,
+                push: true,
+            };
+
+            let config = config::Config {
+                credentials: config::Credentials::default(),
+                project: config::Project::default(),
+                mapping: config::Mapping {
+                    entries: HashMap::new(),
+                },
+            };
+
+            git::execute(vec!["init"]).unwrap();
+            git::execute(vec!["commit", "--allow-empty", "-m", "Initial commit"]).unwrap();
+
+            let remote_dir = jail.create_dir("remote")?;
+            git::execute(vec![
+                "remote",
+                "add",
+                "origin",
+                &format!(
+                    "{}/.git",
+                    jail.directory()
+                        .join(&remote_dir)
+                        .into_os_string()
+                        .into_string()
+                        .unwrap()
+                ),
+            ])
+            .unwrap();
+
+            jail.change_dir(&remote_dir)?;
+            git::execute(vec!["init"]).unwrap();
+            jail.change_dir(jail.directory())?;
+
+            let mut mock_client = MockClient::new();
+            let mock_response = serde_json::json!({
+                "id": "test-id",
+                "key": "test-key",
+                "fields": {
+                    "issue_type": null,
+                    "summary": "This is a mock summary",
+                    "status": null,
+                    "assignee": null
+                }
+            });
+            mock_client.set_get_response(mock_response);
+            handle(&JiraApi::new(mock_client), &args, &config).unwrap();
+
+            let new_branch = git::execute(vec!["branch", "--show-current"]).unwrap();
+            assert_eq!("test-key_this-is-mock-summary", new_branch.trim());
+
+            jail.change_dir(&remote_dir)?;
+            assert_eq!(
+                true,
+                git::branch_exists("test-key_this-is-mock-summary").unwrap()
+            );
+
+            Ok(())
+        })
+    }
+
+    struct MockClient {
+        get_response_json: serde_json::Value,
+    }
+
+    impl MockClient {
+        fn new() -> MockClient {
+            MockClient {
+                get_response_json: serde_json::Value::Null,
+            }
+        }
+
+        fn set_get_response(&mut self, response_json: serde_json::Value) {
+            self.get_response_json = response_json;
+        }
+
+        fn request<T: DeserializeOwned, E: ApiError + DeserializeOwned>(
+            &self,
+            result: &serde_json::Value,
+        ) -> Result<T> {
+            let result: T = serde_json::from_value(result.clone())
+                .map_err(|e| anyhow::anyhow!("Mock deserialization failed: {}", e))?;
+            Ok(result)
+        }
+    }
+
+    impl HttpClient for MockClient {
+        fn get<T: DeserializeOwned, E: ApiError + DeserializeOwned>(
+            &self,
+            _: &str,
+            _: Vec<(&str, &str)>,
+        ) -> Result<T> {
+            self.request::<T, E>(&self.get_response_json)
+        }
+
+        fn post<T: DeserializeOwned, S: Serialize, E: ApiError + DeserializeOwned>(
+            &self,
+            _: &str,
+            _: S,
+        ) -> Result<T> {
+            todo!()
+        }
+    }
+}

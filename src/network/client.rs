@@ -46,7 +46,6 @@ impl HttpClient for TwigClient {
             .context("failed to parse GET response")
     }
 
-    // #[allow(dead_code)]
     fn post<T: DeserializeOwned, S: Serialize, E: ApiError + DeserializeOwned>(
         &self,
         path: &str,

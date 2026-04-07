@@ -1,15 +1,11 @@
 use anyhow::{Context, Result};
-use reqwest::Method;
 use serde::{Serialize, de::DeserializeOwned};
 
-use crate::network::{
-    client::TwigClient,
-    model::{
-        Credentials, JiraError, JiraIssue, JiraIssueBulkRequest, JiraIssueStatusBulkResponse,
-        JiraIssueStatusObject, JiraIssueType,
-    },
-};
 use crate::network::client::ApiError;
+use crate::network::model::{
+    JiraError, JiraIssue, JiraIssueBulkRequest, JiraIssueStatusBulkResponse, JiraIssueStatusObject,
+    JiraIssueType,
+};
 
 pub trait HttpClient {
     fn get<T: DeserializeOwned, E: ApiError + DeserializeOwned>(
@@ -23,7 +19,6 @@ pub trait HttpClient {
         path: &str,
         body: S,
     ) -> Result<T>;
-
 }
 pub struct JiraApi<C: HttpClient> {
     client: C,
@@ -48,7 +43,6 @@ impl<C: HttpClient> JiraApi<C> {
             .context("failed to get jira issues types")
     }
 
-    #[allow(dead_code)]
     pub fn get_jira_issue(&self, issue_key: &str) -> Result<JiraIssue> {
         self.get(
             &format!("issue/{issue_key}"),

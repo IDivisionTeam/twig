@@ -28,27 +28,24 @@ pub fn checkout(branch_name: &str) -> Result<String> {
     }
 
     args.push(branch_name);
-    execute("git", args).map_err(|_| GitError::CheckoutBranch)
+    execute(args).map_err(|_| GitError::CheckoutBranch)
 }
 
 pub fn push_to_remote(branch_name: &str, remote: &str) -> Result<String> {
-    execute("git", vec!["push", "-u", remote, branch_name]).map_err(|_| GitError::Push)
+    execute(vec!["push", "-u", remote, branch_name]).map_err(|_| GitError::Push)
 }
 
 pub fn branch_exists(branch_name: &str) -> Result<bool> {
-    let output = execute(
-        "git",
-        vec!["show-ref", &format!("refs/heads/{branch_name}")],
-    )?;
+    let output = execute(vec!["show-ref", &format!("refs/heads/{branch_name}")])?;
     Ok(!output.is_empty())
 }
 
 pub fn fetch_prune() -> Result<String> {
-    execute("git", vec!["fetch", "-p"])
+    execute(vec!["fetch", "-p"])
 }
 
 pub fn ensure_clean_status() -> Result<()> {
-    let output = execute("git", vec!["status", "-s"])?;
+    let output = execute(vec!["status", "-s"])?;
     if !output.is_empty() {
         return Err(GitError::BranchNotClean);
     }
@@ -56,19 +53,19 @@ pub fn ensure_clean_status() -> Result<()> {
 }
 
 pub fn get_local_branches() -> Result<String> {
-    execute("git", vec!["branch"])
+    execute(vec!["branch"])
 }
 
 pub fn delete_local_branch(branch_name: &str) -> Result<String> {
-    execute("git", vec!["branch", "-D", branch_name])
+    execute(vec!["branch", "-D", branch_name])
 }
 
 pub fn delete_remote_branch(remote: &str, branch_name: &str) -> Result<String> {
-    execute("git", vec!["push", "-d", remote, branch_name])
+    execute(vec!["push", "-d", remote, branch_name])
 }
 
-fn execute(cmd: &str, args: Vec<&str>) -> Result<String> {
-    let output = Command::new(cmd).args(args.as_slice()).output()?;
+pub fn execute(args: Vec<&str>) -> Result<String> {
+    let output = Command::new("git").args(args.as_slice()).output()?;
 
     Ok(if output.stdout.is_empty() {
         String::from_utf8(output.stderr)

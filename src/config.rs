@@ -237,19 +237,27 @@ pub fn get_config_global_path() -> String {
 }
 
 #[cfg(target_os = "linux")]
+#[cfg(not(test))]
 fn get_default_config_path() -> String {
     env::var("XDG_CONFIG_HOME")
         .unwrap_or_else(|_| -> String { env::var("HOME").unwrap() + "/.config" })
 }
 
 #[cfg(target_os = "macos")]
+#[cfg(not(test))]
 fn get_default_config_path() -> String {
     env::var("XDG_DATA_HOME").unwrap_or_else(|_| -> String {  env::var("HOME").unwrap() + "/Library" })
 }
 
 #[cfg(test)]
+pub use tests::get_default_config_path;
+
+#[cfg(test)]
 mod tests {
     use super::*;
+    use std::io;
+    use std::sync::LazyLock;
+    use tempfile::TempDir;
 
     #[test]
     fn test_read_config_local() {
@@ -261,23 +269,19 @@ mod tests {
             assert_eq!(config, build_test_config_model());
 
             Ok(())
-        });
+        })
     }
 
     #[test]
     fn test_read_config_global() {
-        figment::Jail::expect_with(|jail| {
-            let current_dir = jail.directory().display().to_string();
-            set_home_env_var(jail, &current_dir);
-
-            jail.create_dir(current_dir + "/twig")?;
-            jail.create_file(get_config_global_path(), &build_test_file_content())?;
+        figment::Jail::expect_with(|_| {
+            create_global_config(&build_test_file_content()).unwrap();
 
             let config: Config = read_config().unwrap();
             assert_eq!(config, build_test_config_model());
 
             Ok(())
-        });
+        })
     }
 
     #[test]
@@ -292,12 +296,7 @@ mod tests {
                 "#,
             )?;
 
-            let current_dir = jail.directory().display().to_string();
-            set_home_env_var(jail, &current_dir);
-
-            jail.create_dir(current_dir + "/twig")?;
-            jail.create_file(
-                get_config_global_path(),
+            create_global_config(
                 r#"
                     [credentials]
                     host = "test_host"
@@ -305,7 +304,8 @@ mod tests {
                     auth = "basic"
                     token = "super_secret"
                 "#,
-            )?;
+            )
+            .unwrap();
 
             let config: Config = read_config().unwrap();
             assert_eq!(
@@ -325,7 +325,7 @@ mod tests {
             );
 
             Ok(())
-        });
+        })
     }
 
     #[test]
@@ -341,7 +341,7 @@ mod tests {
             assert_eq!(config, build_test_config_model_with_zero_issue_type());
 
             Ok(())
-        });
+        })
     }
 
     #[test]
@@ -352,17 +352,28 @@ mod tests {
             create_config_if_not_exist(&get_config_local_path()).unwrap();
             assert_eq!(Path::new(&get_config_local_path()).exists(), true);
             Ok(())
-        });
+        })
     }
 
-    #[cfg(target_os = "macos")]
-    fn set_home_env_var(jail: &mut figment::Jail, current_dir: &str) {
-        jail.set_env("XDG_DATA_HOME", &current_dir);
+    fn create_global_config(content: &str) -> io::Result<()> {
+        let mut global_config_file = fs::File::create(get_config_global_path())?;
+        global_config_file.write_all(content.as_bytes())?;
+        Ok(())
     }
 
-    #[cfg(target_os = "linux")]
-    fn set_home_env_var(jail: &mut figment::Jail, current_dir: &str) {
-        jail.set_env("XDG_CONFIG_HOME", &current_dir);
+    static TEMP_HOME_DIR: LazyLock<TempDir> = LazyLock::new(|| {
+        let home_dir = tempfile::tempdir().unwrap();
+        fs::create_dir(home_dir.path().join("twig")).unwrap();
+        home_dir
+    });
+
+    pub fn get_default_config_path() -> String {
+        TEMP_HOME_DIR
+            .path()
+            .to_path_buf()
+            .into_os_string()
+            .into_string()
+            .unwrap()
     }
 
     fn build_test_file_content() -> String {

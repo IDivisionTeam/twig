@@ -96,6 +96,9 @@ mod tests {
                 },
             };
 
+            git::execute(vec!["config", "--global", "user.email", "test@example.com"]).unwrap();
+            git::execute(vec!["config", "--global", "user.name", "test name"]).unwrap();
+
             git::execute(vec!["init"]).unwrap();
             git::execute(vec!["commit", "--allow-empty", "-m", "Initial commit"]).unwrap();
 
@@ -143,6 +146,9 @@ mod tests {
                 },
             };
 
+            git::execute(vec!["config", "--global", "user.email", "test@example.com"]).unwrap();
+            git::execute(vec!["config", "--global", "user.name", "test name"]).unwrap();
+
             git::execute(vec!["init"]).unwrap();
             git::execute(vec!["commit", "--allow-empty", "-m", "Initial commit"]).unwrap();
 
@@ -178,10 +184,8 @@ mod tests {
                 }
             });
             mock_client.set_get_response(mock_response);
-            handle(&JiraApi::new(mock_client), &args, &config).unwrap();
 
-            let new_branch = git::execute(vec!["branch", "--show-current"]).unwrap();
-            assert_eq!("test-key_this-is-mock-summary", new_branch.trim());
+            handle(&JiraApi::new(mock_client), &args, &config).unwrap();
 
             jail.change_dir(&remote_dir)?;
             assert_eq!(

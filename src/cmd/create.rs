@@ -3,6 +3,7 @@ use clap::Args;
 use log::info;
 
 use crate::{branch::*, config, git, network::api::JiraApi};
+use crate::network::api::HttpClient;
 use crate::network::model::JiraIssueType;
 
 #[derive(Args)]
@@ -16,7 +17,7 @@ pub struct Create {
     push: bool,
 }
 
-pub fn handle(jira_api: &JiraApi, args: &Create, config: &config::Config) -> Result<()> {
+pub fn handle<C: HttpClient>(jira_api: &JiraApi<C>, args: &Create, config: &config::Config) -> Result<()> {
     let jira_issue = jira_api.get_jira_issue(&args.issue)?;
 
     let branch_type: BranchType = args._type.clone().or(try_map_issue_type_to_branch_type(&jira_issue.fields.issue_type, &config.mapping));
@@ -47,3 +48,30 @@ fn try_map_issue_type_to_branch_type(
 ) -> BranchType {
     issue_type.as_ref().and_then(|it|  mapping.entries.get(&it.id)).cloned()
 }
+
+//
+// #[cfg(test)]
+// mod tests {
+//     use serde::de::DeserializeOwned;
+//     use serde::Serialize;
+//     use crate::network::client::ApiError;
+//     use super::*;
+//
+//     struct MockClient;
+//
+//     impl HttpClient for MockClient {
+//         fn get<T: DeserializeOwned, E: ApiError + DeserializeOwned>(&self, path: &str, params: Vec<(&str, &str)>) -> Result<T> {
+//             todo!()
+//         }
+//
+//         fn post<T: DeserializeOwned, S: Serialize, E: ApiError + DeserializeOwned>(&self, path: &str, body: S) -> Result<T> {
+//             todo!()
+//         }
+//     }
+//
+//     #[test]
+//     fn test_handle() {
+//
+//     }
+//
+// }

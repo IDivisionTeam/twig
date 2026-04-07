@@ -1,11 +1,12 @@
+use crate::network::api::HttpClient;
 use crate::network::model::{AUTH_BASIC, AUTH_BEARER, Credentials};
 use anyhow::{Context, Ok, Result};
 use base64::Engine;
 use base64::engine::general_purpose;
 use reqwest::blocking::{Client, ClientBuilder, RequestBuilder};
 use reqwest::{Method, blocking::Response, header};
-use serde::de::DeserializeOwned;
 use serde::Serialize;
+use serde::de::DeserializeOwned;
 
 pub trait ApiError {
     fn errors(&self) -> Vec<String>;
@@ -26,7 +27,14 @@ impl TwigClient {
         Ok(Self { host, client })
     }
 
-    pub fn get<T: DeserializeOwned, E: ApiError + DeserializeOwned>(
+    fn request(&self, method: Method, path: &str) -> RequestBuilder {
+        let url = format!("{host}/{path}", host = self.host, path = path);
+        self.client.request(method, url)
+    }
+}
+
+impl HttpClient for TwigClient {
+    fn get<T: DeserializeOwned, E: ApiError + DeserializeOwned>(
         &self,
         path: &str,
         params: Vec<(&str, &str)>,
@@ -38,8 +46,8 @@ impl TwigClient {
             .context("failed to parse GET response")
     }
 
-    #[allow(dead_code)]
-    pub fn post<T: DeserializeOwned, S: Serialize, E: ApiError + DeserializeOwned>(
+    // #[allow(dead_code)]
+    fn post<T: DeserializeOwned, S: Serialize, E: ApiError + DeserializeOwned>(
         &self,
         path: &str,
         body: S,
@@ -49,11 +57,6 @@ impl TwigClient {
             .context("GET request failed")?
             .json::<T>()
             .context("failed to parse GET response")
-    }
-
-    fn request(&self, method: Method, path: &str) -> RequestBuilder {
-        let url = format!("{host}/{path}", host = self.host, path = path);
-        self.client.request(method, url)
     }
 }
 

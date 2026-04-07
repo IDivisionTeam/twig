@@ -1,4 +1,5 @@
 use anyhow::{Context, Result};
+use reqwest::Method;
 use serde::{Serialize, de::DeserializeOwned};
 
 use crate::network::{
@@ -8,15 +9,29 @@ use crate::network::{
         JiraIssueStatusObject, JiraIssueType,
     },
 };
+use crate::network::client::ApiError;
 
-pub struct JiraApi {
-    client: TwigClient,
+pub trait HttpClient {
+    fn get<T: DeserializeOwned, E: ApiError + DeserializeOwned>(
+        &self,
+        path: &str,
+        params: Vec<(&str, &str)>,
+    ) -> Result<T>;
+
+    fn post<T: DeserializeOwned, S: Serialize, E: ApiError + DeserializeOwned>(
+        &self,
+        path: &str,
+        body: S,
+    ) -> Result<T>;
+
+}
+pub struct JiraApi<C: HttpClient> {
+    client: C,
 }
 
-impl JiraApi {
-    pub fn new(credentials: Credentials) -> Result<JiraApi> {
-        let client = TwigClient::new(credentials)?;
-        Ok(Self { client })
+impl<C: HttpClient> JiraApi<C> {
+    pub fn new(client: C) -> JiraApi<C> {
+        Self { client }
     }
 
     fn get<T: DeserializeOwned>(&self, path: &str, params: Vec<(&str, &str)>) -> Result<T> {

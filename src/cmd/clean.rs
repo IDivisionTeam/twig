@@ -15,6 +15,7 @@ const DONE_STATUS_ID: i64 = 3;
 static ISSUE_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"[A-Z]+-\d+_").unwrap());
 
 use thiserror::Error;
+use crate::network::api::HttpClient;
 
 #[derive(Error, Debug)]
 pub enum CleanCmdError {
@@ -73,7 +74,7 @@ enum Commands {
     All,
 }
 
-pub fn handle(jira_api: &JiraApi, args: &Clean, config: &config::Config) -> Result<()> {
+pub fn handle<C: HttpClient>(jira_api: &JiraApi<C>, args: &Clean, config: &config::Config) -> Result<()> {
     let delete_remote = match args.command {
         Commands::Local => false,
         Commands::All => true,
@@ -139,8 +140,8 @@ fn pair_branches_with_issues(raw_branches: &str) -> Result<HashMap<String, Strin
     Ok(issues)
 }
 
-fn pair_branches_with_statuses(
-    jira_api: &JiraApi,
+fn pair_branches_with_statuses<C: HttpClient>(
+    jira_api: &JiraApi<C>,
     issues: HashMap<String, String>,
     assignee: &str,
     ignore_assignee: bool,
@@ -181,8 +182,8 @@ fn delete_branches_if_any(
     any_in_done_status
 }
 
-fn query_issues(
-    jira_api: &JiraApi,
+fn query_issues<C: HttpClient>(
+    jira_api: &JiraApi<C>,
     issues: HashMap<String, String>,
     assignee: &str,
     ignore_assignee: bool,

@@ -67,7 +67,7 @@ mod tests {
     use crate::git;
     use crate::network::client::ApiError;
     use figment::Jail;
-    use rstest::rstest;
+    use rstest_log::rstest;
     use serde::Serialize;
     use serde::de::DeserializeOwned;
 

@@ -47,9 +47,23 @@ pub fn branch_exists(branch_name: &str) -> Result<bool> {
     ]) {
         Ok(_) => Ok(true),
         Err(GitError::Failed(ref msg)) if msg.contains("reference does not exist") => Ok(false),
+        Err(GitError::Failed(ref msg)) if msg.contains("unknown option `exists'") => branch_exists_fallback(branch_name),
         Err(e) => Err(GitError::CheckBranchIfExists(Box::new(e))),
     }
 }
+
+/// branch_exists_fallback is a fallback for --exists parameter for git version < v2.44.0
+fn branch_exists_fallback(branch_name: &str) -> Result<bool> {
+    match execute(vec![
+        "rev-parse",
+        &format!("refs/heads/{branch_name}"),
+    ]) {
+        Ok(_) => Ok(true),
+        Err(GitError::Failed(ref msg)) if msg.contains("unknown revision or path not in the working tree") => Ok(false),
+        Err(e) => Err(GitError::CheckBranchIfExists(Box::new(e))),
+    }
+}
+
 
 pub fn fetch_prune() -> Result<String> {
     execute(vec!["fetch", "-p"])

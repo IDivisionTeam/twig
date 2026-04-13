@@ -14,6 +14,7 @@ use std::{
     path::Path,
 };
 use thiserror::Error;
+use std::fmt::Write as fmtWrite;
 
 #[derive(Error, Debug)]
 pub enum ConfigError {
@@ -94,7 +95,7 @@ impl Default for Project {
             exclude_phrases: [
                 "front", "mobile", "android", "ios", "be", "web", "spike", "eval",
             ]
-            .map(|s| s.to_string())
+            .map(std::string::ToString::to_string)
             .to_vec(),
         }
     }
@@ -140,17 +141,16 @@ impl Display for Mapping {
 
         let mut formatted_str: String = inverted_mapping
             .into_iter()
-            .map(|(k, v)| {
+            .fold(String::new(), |mut acc, (k,v)| {
                 let values = v.join(", ");
-
-                format!("mapping.{k}=[{values}]\n")
-            })
-            .collect();
+                let _ = writeln!(acc, "mapping.{k}=[{values}]");
+                acc
+            });
 
         // removes trailing new line
         formatted_str.pop();
 
-        write!(f, "{}", formatted_str)
+        write!(f, "{formatted_str}")
     }
 }
 
@@ -217,7 +217,7 @@ pub fn create_config_if_not_exist(config_path: &str) -> Result<(), ConfigError> 
     }
 
     if let Some(prefix) = config_path.parent() {
-        fs::create_dir_all(prefix)?
+        fs::create_dir_all(prefix)?;
     }
 
     let content = toml::to_string(&Config::default())?;

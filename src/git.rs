@@ -32,15 +32,15 @@ pub fn checkout(branch_name: &str) -> Result<String> {
     }
 
     args.push(branch_name);
-    execute(args).map_err(|err| GitError::CheckoutBranch(Box::new(err)))
+    execute(&args).map_err(|err| GitError::CheckoutBranch(Box::new(err)))
 }
 
 pub fn push_to_remote(branch_name: &str, remote: &str) -> Result<String> {
-    execute(vec!["push", "-u", remote, branch_name]).map_err(|err| GitError::Push(Box::new(err)))
+    execute(&["push", "-u", remote, branch_name]).map_err(|err| GitError::Push(Box::new(err)))
 }
 
 pub fn branch_exists(branch_name: &str) -> Result<bool> {
-    match execute(vec![
+    match execute(&[
         "show-ref",
         "--exists",
         &format!("refs/heads/{branch_name}"),
@@ -52,9 +52,9 @@ pub fn branch_exists(branch_name: &str) -> Result<bool> {
     }
 }
 
-/// branch_exists_fallback is a fallback for --exists parameter for git version < v2.44.0
+/// `branch_exists_fallback` is a fallback for --exists parameter for git version < v2.44.0
 fn branch_exists_fallback(branch_name: &str) -> Result<bool> {
-    match execute(vec![
+    match execute(&[
         "rev-parse",
         &format!("refs/heads/{branch_name}"),
     ]) {
@@ -64,13 +64,12 @@ fn branch_exists_fallback(branch_name: &str) -> Result<bool> {
     }
 }
 
-
 pub fn fetch_prune() -> Result<String> {
-    execute(vec!["fetch", "-p"])
+    execute(&["fetch", "-p"])
 }
 
 pub fn ensure_clean_status() -> Result<()> {
-    let output = execute(vec!["status", "-s"])?;
+    let output = execute(&["status", "-s"])?;
     if !output.is_empty() {
         return Err(GitError::BranchNotClean);
     }
@@ -78,19 +77,19 @@ pub fn ensure_clean_status() -> Result<()> {
 }
 
 pub fn get_local_branches() -> Result<String> {
-    execute(vec!["branch"])
+    execute(&["branch"])
 }
 
 pub fn delete_local_branch(branch_name: &str) -> Result<String> {
-    execute(vec!["branch", "-D", branch_name])
+    execute(&["branch", "-D", branch_name])
 }
 
 pub fn delete_remote_branch(remote: &str, branch_name: &str) -> Result<String> {
-    execute(vec!["push", "-d", remote, branch_name])
+    execute(&["push", "-d", remote, branch_name])
 }
 
-pub fn execute(args: Vec<&str>) -> Result<String> {
-    let output = Command::new("git").args(args.as_slice()).output()?;
+pub fn execute(args: &[&str]) -> Result<String> {
+    let output = Command::new("git").args(args).output()?;
 
     let stdout = String::from_utf8(output.stdout)?;
     let stderr = String::from_utf8(output.stderr)?;

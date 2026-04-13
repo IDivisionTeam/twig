@@ -16,5 +16,5 @@ fn main() -> Result<()> {
     env_logger::init_from_env(env);
 
     let config: Config = config::read_config()?;
-    twig::execute(config)
+    twig::execute(&config)
 }

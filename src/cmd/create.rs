@@ -4,14 +4,14 @@ use log::info;
 
 use crate::network::api::HttpClient;
 use crate::network::model::JiraIssueType;
-use crate::{branch::*, config, git, network::api::JiraApi};
+use crate::{branch::{BranchType, Branch}, config, git, network::api::JiraApi};
 
 #[derive(Args)]
 pub struct Create {
     issue: String,
 
     #[arg(short, long)]
-    _type: Option<String>,
+    r#type: Option<String>,
 
     #[arg(short, long, default_value_t = false)]
     push: bool,
@@ -24,8 +24,8 @@ pub fn handle<C: HttpClient>(
 ) -> Result<()> {
     let jira_issue = jira_api.get_jira_issue(&args.issue)?;
 
-    let branch_type: BranchType = args._type.clone().or(try_map_issue_type_to_branch_type(
-        &jira_issue.fields.issue_type,
+    let branch_type: BranchType = args.r#type.clone().or(try_map_issue_type_to_branch_type(
+        jira_issue.fields.issue_type.as_ref(),
         &config.mapping,
     ));
 
@@ -37,7 +37,7 @@ pub fn handle<C: HttpClient>(
         .collect();
     let b = Branch::new(branch_type, exclude_phrases);
 
-    let branch_name = b.build_name(&jira_issue.key, &jira_issue.fields.summary);
+    let branch_name = b.build_name(&jira_issue.key, jira_issue.fields.summary.as_ref());
     let output = git::checkout(&branch_name)?;
     info!("{output}");
 
@@ -50,7 +50,7 @@ pub fn handle<C: HttpClient>(
 }
 
 fn try_map_issue_type_to_branch_type(
-    issue_type: &Option<JiraIssueType>,
+    issue_type: Option<&JiraIssueType>,
     mapping: &config::Mapping,
 ) -> BranchType {
     issue_type
@@ -81,7 +81,7 @@ mod tests {
         Jail::expect_with(|_| {
             let args = Create {
                 issue: "test-issue".to_string(),
-                _type: branch_type_arg,
+                r#type: branch_type_arg,
                 push: false,
             };
 
@@ -96,11 +96,11 @@ mod tests {
                 },
             };
 
-            git::execute(vec!["config", "--global", "user.email", "test@example.com"]).unwrap();
-            git::execute(vec!["config", "--global", "user.name", "test name"]).unwrap();
+            git::execute(&["config", "--global", "user.email", "test@example.com"]).unwrap();
+            git::execute(&["config", "--global", "user.name", "test name"]).unwrap();
 
-            git::execute(vec!["init"]).unwrap();
-            git::execute(vec!["commit", "--allow-empty", "-m", "Initial commit"]).unwrap();
+            git::execute(&["init"]).unwrap();
+            git::execute(&["commit", "--allow-empty", "-m", "Initial commit"]).unwrap();
 
             let mut mock_client = MockClient::new();
             let mock_response = serde_json::json!({
@@ -119,7 +119,7 @@ mod tests {
             mock_client.set_get_response(mock_response);
             handle(&JiraApi::new(mock_client), &args, &config).unwrap();
 
-            let new_branch = git::execute(vec!["branch", "--show-current"]).unwrap();
+            let new_branch = git::execute(&["branch", "--show-current"]).unwrap();
 
             assert_eq!(
                 branch_type_prefix + "/test-key_this-is-mock-summary",
@@ -134,7 +134,7 @@ mod tests {
         Jail::expect_with(|jail| {
             let args = Create {
                 issue: "test-issue".to_string(),
-                _type: None,
+                r#type: None,
                 push: true,
             };
 
@@ -146,14 +146,14 @@ mod tests {
                 },
             };
 
-            git::execute(vec!["config", "--global", "user.email", "test@example.com"]).unwrap();
-            git::execute(vec!["config", "--global", "user.name", "test name"]).unwrap();
+            git::execute(&["config", "--global", "user.email", "test@example.com"]).unwrap();
+            git::execute(&["config", "--global", "user.name", "test name"]).unwrap();
 
-            git::execute(vec!["init"]).unwrap();
-            git::execute(vec!["commit", "--allow-empty", "-m", "Initial commit"]).unwrap();
+            git::execute(&["init"]).unwrap();
+            git::execute(&["commit", "--allow-empty", "-m", "Initial commit"]).unwrap();
 
             let remote_dir = jail.create_dir("remote")?;
-            git::execute(vec![
+            git::execute(&[
                 "remote",
                 "add",
                 "origin",
@@ -169,7 +169,7 @@ mod tests {
             .unwrap();
 
             jail.change_dir(&remote_dir)?;
-            git::execute(vec!["init"]).unwrap();
+            git::execute(&["init"]).unwrap();
             jail.change_dir(jail.directory())?;
 
             let mut mock_client = MockClient::new();

@@ -19,7 +19,7 @@ use crate::network::api::HttpClient;
 
 #[derive(Error, Debug)]
 pub enum CleanCmdError {
-    #[error("{}", Self::no_done_issue_found(.0))]
+    #[error("{}", Self::no_done_issue_found(.0.as_ref()))]
     NoDoneIssueFound(Option<String>),
     #[error("email {0} is either invalid or corrupted")]
     InvalidEmail(String),
@@ -40,7 +40,7 @@ pub enum CleanCmdError {
 }
 
 impl CleanCmdError {
-    fn no_done_issue_found(assignee: &Option<String>) -> String {
+    fn no_done_issue_found(assignee: Option<&String>) -> String {
         match assignee {
             Some(assignee) => {
                 format!("no associated Jira issues in DONE status where assignee is '{assignee}'")
@@ -108,7 +108,7 @@ pub fn handle<C: HttpClient>(jira_api: &JiraApi<C>, args: &Clean, config: &confi
 }
 
 fn extract_username_from_email(email: &str) -> Result<String> {
-    let parts = email.split("@").collect::<Vec<_>>();
+    let parts = email.split('@').collect::<Vec<_>>();
     if parts.len() != 2 {
         return Err(CleanCmdError::InvalidEmail(email.to_string()));
     }

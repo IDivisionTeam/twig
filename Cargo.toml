@@ -4,6 +4,9 @@ version = "2.0.0-alpha01"
 authors = ["IDivisionTeam", "idivision.developer@gmail.com"]
 edition = "2024"
 
+[lints.clippy]
+pedantic = "deny"
+
 [dependencies]
 clap = { version = "4.5.39", features = ["cargo", "color", "derive"] }
 serde = { version = "1.0.219", features = ["derive", "alloc"] }

@@ -18,9 +18,9 @@ pub struct TwigClient {
 }
 
 impl TwigClient {
-    pub fn new(credentials: Credentials) -> Result<Self> {
+    pub fn new(credentials: &Credentials) -> Result<Self> {
         let mut builder = Client::builder();
-        builder = configure_headers(builder, &credentials);
+        builder = configure_headers(builder, credentials);
 
         let host = format!("https://{host}/rest/api/2", host = credentials.host);
         let client = builder.build().context("failed to build client")?;
@@ -84,7 +84,7 @@ fn create_auth_header(credentials: &Credentials) -> String {
 }
 
 fn basic_auth(username: &str, password: &str) -> String {
-    let auth = format!("{}:{}", username, password);
+    let auth = format!("{username}:{password}");
     general_purpose::STANDARD.encode(auth.as_bytes())
 }
 

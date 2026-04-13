@@ -29,21 +29,21 @@ enum Commands {
     Init(init::Init),
 }
 
-pub fn execute(config: Config) -> Result<()> {
+pub fn execute(config: &Config) -> Result<()> {
     let credentials = network::model::Credentials {
         host: config.credentials.host.clone(),
         email: config.credentials.email.clone(),
         auth: config.credentials.auth.clone(),
         token: config.credentials.token.clone(),
     };
-    let jira_api = JiraApi::new(TwigClient::new(credentials)?);
+    let jira_api = JiraApi::new(TwigClient::new(&credentials)?);
 
     let twig = Twig::parse();
 
     match &twig.command {
-        Commands::Clean(args) => clean::handle(&jira_api, args, &config).context("clean command failed")?,
-        Commands::Config(args) => cfg::handle(args, &config).context("config command failed")?,
-        Commands::Create(args) => create::handle(&jira_api, args, &config).context("create command failed")?,
+        Commands::Clean(args) => clean::handle(&jira_api, args, config).context("clean command failed")?,
+        Commands::Config(args) => cfg::handle(args, config).context("config command failed")?,
+        Commands::Create(args) => create::handle(&jira_api, args, config).context("create command failed")?,
         Commands::Init(args) => init::handle(&jira_api, args).context("init command failed")?,
     }
 

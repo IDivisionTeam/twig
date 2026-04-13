@@ -20,7 +20,7 @@ pub type BranchType = Option<String>;
 //  Current implementation almost direct copy of the Branch class in Golang. Most parts were unchanged to preserve the behavior.
 /// Represents a branch with its type and rules for generating normalized names.
 pub struct Branch {
-    pub branch_type: BranchType,
+    pub r#type: BranchType,
     exclude_phrases: Vec<Regex>,
     #[allow(dead_code)]
     issue_regex: Regex, // FIXME: should be separated from Branch. check branch.go L:115 ExtractIssueNameFromBranch
@@ -35,7 +35,7 @@ impl Branch {
         let exclude_phrases = build_exclude_phrases_regex_list(exclude_phrases);
 
         Self {
-            branch_type,
+            r#type: branch_type,
             exclude_phrases,
             issue_regex: Regex::new(r"[A-Z]+-\d+_").unwrap(),
             strip_regex: build_strip_regex().unwrap(),
@@ -47,14 +47,14 @@ impl Branch {
     /// Sets the branch type for this instance.
     #[allow(dead_code)]
     pub fn set_branch_type(&mut self, branch_type: BranchType) {
-        self.branch_type = branch_type;
+        self.r#type = branch_type;
     }
 
     /// Builds a normalized branch name based on the branch type, issue key, and summary.
-    pub fn build_name(&self, key: &str, summary: &Option<String>) -> String {
+    pub fn build_name(&self, key: &str, summary: Option<&String>) -> String {
         let mut buffer: String = String::new();
 
-        buffer = append_branch_type(self.branch_type.as_deref(), &buffer);
+        buffer = append_branch_type(self.r#type.as_deref(), &buffer);
         buffer = append_issue_key(key, &buffer);
         buffer = append_issue_summary(
             &self.exclude_phrases,
@@ -72,13 +72,13 @@ impl Branch {
 /// Builds a list of case-insensitive regex patterns for phrases to exclude.
 /// Each phrase is matched if enclosed in `[]` or `()`.
 ///
-/// Examples: [tests::EXCLUDE_PHRASES]
+/// Examples: [`tests::EXCLUDE_PHRASES`]
 fn build_exclude_phrases_regex_list(exclude_phrases: Vec<&str>) -> Vec<Regex> {
     exclude_phrases
         .into_iter()
         .map(|w| {
             let word = regex::escape(w);
-            let pattern = format!(r"(?i)(\[{}\]|\({}\))", word, word);
+            let pattern = format!(r"(?i)(\[{word}\]|\({word}\))");
             Regex::new(&pattern).unwrap()
         })
         .collect()
@@ -89,7 +89,7 @@ fn build_strip_regex() -> Result<Regex, Error> {
     Regex::new(r"[^a-zA-Z0-9]+")
 }
 
-/// Regex to detect PascalCase boundaries for transforming into kebab-case.
+/// Regex to detect `PascalCase` boundaries for transforming into kebab-case.
 fn build_pascal_case_regex() -> Result<Regex, Error> {
     Regex::new(r"([A-Z]+)([A-Z][a-z])")
 }
@@ -103,16 +103,16 @@ fn build_camel_case_regex() -> Result<Regex, Error> {
 ///
 /// The summary is processed through multiple steps:
 /// 1. Normalization to ASCII using [normalize].
-/// 2. Removal of articles via [filter_articles].
-/// 3. Removal of excluded phrases using [replace_phrases].
-/// 4. Conversion from PascalCase/camelCase to kebab-case using [pascal_camel_to_kebab].
+/// 2. Removal of articles via [`filter_articles`].
+/// 3. Removal of excluded phrases using [`replace_phrases`].
+/// 4. Conversion from PascalCase/camelCase to kebab-case using [`pascal_camel_to_kebab`].
 /// 5. Stripping unwanted characters via [strip].
 fn append_issue_summary(
     exclude_phrases: &[Regex],
     pascal_case_regex: &Regex,
     camel_case_regex: &Regex,
     strip_regex: &Regex,
-    summary: &Option<String>,
+    summary: Option<&String>,
     buffer: &str,
 ) -> String {
     match summary {
@@ -123,14 +123,14 @@ fn append_issue_summary(
             result = pascal_camel_to_kebab(pascal_case_regex, camel_case_regex, &result);
             result = strip(strip_regex, &result);
 
-            format!("{}{}", buffer, result)
+            format!("{buffer}{result}")
         }
         None => buffer.to_owned(),
     }
 }
 
-/// Returns a new `String` containing the original `buffer` followed by the [BranchType]
-/// and [BRANCH_TYPE_SEPARATOR] if the type is specified; otherwise returns the original `buffer`.
+/// Returns a new `String` containing the original `buffer` followed by the [`BranchType`]
+/// and [`BRANCH_TYPE_SEPARATOR`] if the type is specified; otherwise returns the original `buffer`.
 fn append_branch_type(branch_type: Option<&str>, buffer: &str) -> String {
     match branch_type {
         Some(branch_type) => format!("{buffer}{branch_type}{BRANCH_TYPE_SEPARATOR}"),
@@ -138,9 +138,9 @@ fn append_branch_type(branch_type: Option<&str>, buffer: &str) -> String {
     }
 }
 
-/// Returns a new `String` containing issue key and [ISSUE_TYPE_SEPARATOR] appended to the given string.
+/// Returns a new `String` containing issue key and [`ISSUE_TYPE_SEPARATOR`] appended to the given string.
 fn append_issue_key(key: &str, buffer: &str) -> String {
-    format!("{}{}{}", buffer, key, ISSUE_TYPE_SEPARATOR)
+    format!("{buffer}{key}{ISSUE_TYPE_SEPARATOR}")
 }
 
 /// Returns a `String` with all matching phrases removed and leading/trailing whitespace trimmed.
@@ -154,7 +154,7 @@ fn replace_phrases(exclude_phrases: &[Regex], value: &str) -> String {
     subject.trim().to_owned()
 }
 
-/// Converts a camelCase or PascalCase string to kebab-case.
+/// Converts a camelCase or `PascalCase` string to kebab-case.
 ///
 /// The transformation is performed in two regex passes to correctly split
 /// lowercase–uppercase and acronym boundaries (e.g. `HTTPServer` → `http-server`).
@@ -176,7 +176,7 @@ fn pascal_camel_to_kebab(
     kebab.to_lowercase()
 }
 
-/// Normalizes a string by replacing unwanted characters with [WORD_SEPARATOR].
+/// Normalizes a string by replacing unwanted characters with [`WORD_SEPARATOR`].
 /// Any leading or trailing separators are removed from the final output.
 fn strip(strip_regex: &Regex, value: &str) -> String {
     strip_regex
@@ -191,7 +191,7 @@ fn strip(strip_regex: &Regex, value: &str) -> String {
 /// This converts accented characters (e.g. `é`) into their ASCII base (`e`) where possible,
 /// drops characters without an ASCII representation.
 fn normalize(value: &str) -> String {
-    value.nfkd().filter(|c| c.is_ascii()).collect()
+    value.nfkd().filter(char::is_ascii).collect()
 }
 
 /// Removes standalone English articles from a string.
@@ -358,7 +358,7 @@ mod tests {
 
         let actual = subject.build_name(
             "TST-101",
-            &Some("[Android] \"MY\" (super)_branchSummary".to_string()),
+            Some(&"[Android] \"MY\" (super)_branchSummary".to_string()),
         );
         assert_eq!(expected, actual);
     }
@@ -371,7 +371,7 @@ mod tests {
 
         let actual = subject.build_name(
             "TST-101",
-            &Some("[Android] \"MY\" (super)_branchSummary HTTPClient".to_string()),
+            Some(&"[Android] \"MY\" (super)_branchSummary HTTPClient".to_string()),
         );
         assert_eq!(expected, actual);
     }
@@ -384,7 +384,7 @@ mod tests {
 
         let actual = subject.build_name(
             "TST-101",
-            &Some("[Android] \"MY\" (super)_branchSummary J2K".to_string()),
+            Some(&"[Android] \"MY\" (super)_branchSummary J2K".to_string()),
         );
         assert_eq!(expected, actual);
     }

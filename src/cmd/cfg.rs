@@ -85,7 +85,7 @@ fn print_value(value: &Value) -> Option<String> {
             map.iter()
                 .map(|(k, v)| {
                     let value = print_value(v).unwrap_or_default();
-                    format!("{} = {}", k, value)
+                    format!("{k} = {value}")
                 })
                 .collect::<Vec<_>>()
                 .join("\n"),

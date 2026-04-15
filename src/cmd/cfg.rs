@@ -50,15 +50,15 @@ pub fn handle(args: &Cfg, config: &config::Config) -> Result<()> {
 }
 
 fn handle_list_cmd(config: &config::Config) {
-    print!(
-        "{}\n{}\n{}",
-        config.credentials, config.project, config.mapping
-    );
+    println!("{}\n{}", config.credentials, config.project);
+    if let Some(r) = &config.remote {
+        print!("{r}");
+    }
+    print!("{}", config.mapping);
 }
 
 fn handle_get_cmd(name: &str) -> Result<()> {
-    let value: Value =
-        read_config_value(name)?.ok_or(ConfigCmdError::InvalidKey(name.to_string()))?;
+    let value: Value = read_config_value(name)?.ok_or(ConfigCmdError::InvalidKey(name.to_string()))?;
 
     let value_to_print = print_value(&value).ok_or(ConfigCmdError::UnexpectedError)?;
     println!("{value_to_print}");
@@ -75,12 +75,7 @@ fn print_value(value: &Value) -> Option<String> {
         Value::Num(_, n) => Some(n.to_actual().to_string()),
         Value::String(_, s) => Some(s.clone()),
         Value::Char(_, c) => Some(c.to_string()),
-        Value::Array(_, arr) => Some(
-            arr.iter()
-                .filter_map(print_value)
-                .collect::<Vec<_>>()
-                .join(", "),
-        ),
+        Value::Array(_, arr) => Some(arr.iter().filter_map(print_value).collect::<Vec<_>>().join(", ")),
         Value::Dict(_, map) => Some(
             map.iter()
                 .map(|(k, v)| {

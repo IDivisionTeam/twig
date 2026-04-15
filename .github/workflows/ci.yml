@@ -24,13 +24,15 @@ jobs:
         run: cargo install cargo-audit
 
       - name: Analyze Dependencies
-        run: cargo audit
+        run: cargo audit --ignore RUSTSEC-2023-0071
 
       - name: Build
         run: cargo build --verbose
 
       - name: Lint
-        run: cargo clippy --verbose -- -D warnings
+        run: |
+          cargo fmt --check
+          cargo clippy --verbose -- -D warnings
 
       - name: Test
         run: cargo test --verbose

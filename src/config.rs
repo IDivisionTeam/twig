@@ -6,15 +6,17 @@ use figment::{
 use serde::{Deserialize, Deserializer, Serialize};
 use std::collections::BTreeMap;
 use std::fmt::Display;
+#[cfg(not(test))]
+use std::env;
 use std::{
     collections::HashMap,
-    env, fmt,
+    fmt,
     fs::{self, File},
     io::{self, Write},
     path::Path,
 };
-use thiserror::Error;
 use std::fmt::Write as fmtWrite;
+use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum ConfigError {
@@ -39,6 +41,7 @@ pub struct Config {
     pub credentials: Credentials,
     #[serde(default)]
     pub project: Project,
+    pub remote: Option<Remote>,
     #[serde(default)]
     pub mapping: Mapping,
 }
@@ -116,6 +119,60 @@ impl Display for Project {
         )
     }
 }
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+pub enum RemoteProvider {
+    #[serde(rename = "github")]
+    GitHub,
+    #[serde(rename = "gitlab")]
+    Gitlab
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+pub struct Remote {
+    pub provider: RemoteProvider,
+    host: Option<String>,
+    pub labels: Option<HashMap<String, String>>,
+}
+
+
+impl Remote {
+    fn get_host(&self) -> &str {
+        self.host.as_deref().unwrap_or({
+            match self.provider {
+                RemoteProvider::GitHub => "https://github.com",
+                RemoteProvider::Gitlab => "https://gitlab.com",
+            }
+        })
+    }
+}
+
+impl Display for Remote {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(
+            f,
+            "\
+            remote.provider={provider:?}",
+            provider = self.provider,
+        )?;
+        if let Some(url) = &self.host {
+            writeln!(
+                f,
+                "\
+                remote.url={url}")?;
+        }
+
+        if let Some(labels) = &self.labels {
+            writeln!(f)?;
+            for (name, value) in labels {
+                writeln!(f, "remote.labels.{name}={value}")?;
+            }
+        }
+        Ok(())
+    }
+}
+
+
 
 pub type MappingType = String;
 
@@ -319,6 +376,7 @@ mod tests {
                         token: "super_secret".to_string()
                     },
                     project: Default::default(),
+                    remote: None,
                     mapping: Mapping {
                         entries: Default::default()
                     },
@@ -388,6 +446,12 @@ mod tests {
             branch = "main"
             remote = "myorigin"
             exclude_phrases = ["test", "super_test"]
+            [remote]
+            provider = "github"
+            host = "remote-url"
+            [remote.labels]
+            label1 = "test-label1"
+            label2 = "test-label2"
             [mapping]
             build = ["1.1", "1.2"]
             chore = ["2"]
@@ -444,8 +508,16 @@ mod tests {
             project: Project {
                 branch: "main".to_string(),
                 remote: "myorigin".to_string(),
-                exclude_phrases: vec!["test".to_string(), "super_test".to_string()],
+                exclude_phrases: vec!["test".to_string(), "super_test".to_string()]
             },
+            remote: Some(Remote{
+                provider: RemoteProvider::GitHub,
+                host: Some("remote-url".to_string()),
+                labels: Some(HashMap::from([
+                    ("label1".to_string(), "test-label1".to_string()),
+                    ("label2".to_string(), "test-label2".to_string())
+                ]))
+            }),
             mapping: Mapping {
                 entries: HashMap::from([
                     ("1.1".to_string(), "build".to_string()),
@@ -479,6 +551,7 @@ mod tests {
                 remote: "myorigin".to_string(),
                 exclude_phrases: vec!["test".to_string(), "super_test".to_string()],
             },
+            remote: None,
             mapping: Mapping {
                 entries: HashMap::new(),
             },

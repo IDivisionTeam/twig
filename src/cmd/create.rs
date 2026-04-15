@@ -1,30 +1,77 @@
-use anyhow::Result;
-use clap::Args;
+use anyhow::{bail, Context, Result};
+use clap::{Args, Subcommand};
 use log::info;
 
 use crate::network::api::HttpClient;
 use crate::network::model::JiraIssueType;
 use crate::{branch::{BranchType, Branch}, config, git, network::api::JiraApi};
+use crate::vcs::VCSClient;
 
 #[derive(Args)]
 pub struct Create {
-    issue: String,
+    issue: Option<String>,
 
     #[arg(short, long)]
     r#type: Option<String>,
 
     #[arg(short, long, default_value_t = false)]
     push: bool,
+
+    #[command(subcommand)]
+    sub: Option<Subcommands>
+}
+
+
+#[derive(Subcommand)]
+pub enum Subcommands {
+
+    #[clap(visible_aliases = &["pr", "mr"])]
+    ChangesOnRemote {
+        #[arg(short, long, value_parser = parse_key_val)]
+        labels: Vec<(String, String)>,
+    }
+}
+
+fn parse_key_val(s: &str) -> Result<(String, String)> {
+    s.split_once('=')
+        .map(|(k, v)| (k.to_string(), v.to_string()))
+        .context(format!("invalid key=value: no '=' found in '{s}'"))
 }
 
 pub fn handle<C: HttpClient>(
     jira_api: &JiraApi<C>,
+    vcs_client: Box<dyn VCSClient>,
     args: &Create,
     config: &config::Config,
 ) -> Result<()> {
-    let jira_issue = jira_api.get_jira_issue(&args.issue)?;
+    if let Some(sub) = &args.sub {
+        if args.issue.is_some() {
+            bail!("only one positional argument can be provided: 'issue' or subcommand ")
+        }
+        match sub {
+            Subcommands::ChangesOnRemote { labels } => {
+                create_change_on_remote(labels.as_ref(), vcs_client, config)?;
+            }
+        }
+    } else if let Some(issue) = &args.issue {
+        create_issue(jira_api, issue, args.r#type.clone(), args.push, config)?;
+    }  else {
+        bail!("either positional argument 'issue' or subcommand must be provided")
+    }
 
-    let branch_type: BranchType = args.r#type.clone().or(try_map_issue_type_to_branch_type(
+    Ok(())
+}
+
+fn create_issue<C: HttpClient>(
+    jira_api: &JiraApi<C>,
+    issue: &str,
+    issue_type: Option<String>,
+    push: bool,
+    config: &config::Config,
+) -> Result<()> {
+    let jira_issue = jira_api.get_jira_issue(issue)?;
+
+    let branch_type = issue_type.or(try_map_issue_type_to_branch_type(
         jira_issue.fields.issue_type.as_ref(),
         &config.mapping,
     ));
@@ -41,7 +88,7 @@ pub fn handle<C: HttpClient>(
     let output = git::checkout(&branch_name)?;
     info!("{output}");
 
-    if args.push {
+    if push {
         let output = git::push_to_remote(&branch_name, &config.project.remote)?;
         info!("{output}");
     }
@@ -57,6 +104,12 @@ fn try_map_issue_type_to_branch_type(
         .as_ref()
         .and_then(|it| mapping.entries.get(&it.id))
         .cloned()
+}
+
+fn create_change_on_remote(_labels: &[(String, String)],  vcs_client: Box<dyn VCSClient>, _config: &config::Config) -> Result<()> {
+    vcs_client.create_changes_on_remote()?;
+    // create pr using client
+    todo!()
 }
 
 #[cfg(test)]
@@ -79,15 +132,14 @@ mod tests {
         #[case] branch_type_prefix: String,
     ) {
         Jail::expect_with(|_| {
-            let args = Create {
-                issue: "test-issue".to_string(),
-                r#type: branch_type_arg,
-                push: false,
-            };
+            let issue = "test-issue";
+            let issue_type = branch_type_arg;
+            let push = false;
 
             let config = config::Config {
                 credentials: config::Credentials::default(),
                 project: config::Project::default(),
+                remote: None,
                 mapping: config::Mapping {
                     entries: HashMap::from([(
                         "test-branch-type".to_string(),
@@ -117,7 +169,7 @@ mod tests {
                 }
             });
             mock_client.set_get_response(mock_response);
-            handle(&JiraApi::new(mock_client), &args, &config).unwrap();
+            create_issue(&JiraApi::new(mock_client), issue, issue_type, push, &config).unwrap();
 
             let new_branch = git::execute(&["branch", "--show-current"]).unwrap();
 
@@ -132,15 +184,15 @@ mod tests {
     #[rstest]
     fn test_handle_pushed_to_remote() {
         Jail::expect_with(|jail| {
-            let args = Create {
-                issue: "test-issue".to_string(),
-                r#type: None,
-                push: true,
-            };
+            let issue = "test-issue";
+            let issue_type = None;
+            let push = true;
+
 
             let config = config::Config {
                 credentials: config::Credentials::default(),
                 project: config::Project::default(),
+                remote: None,
                 mapping: config::Mapping {
                     entries: HashMap::new(),
                 },
@@ -185,7 +237,7 @@ mod tests {
             });
             mock_client.set_get_response(mock_response);
 
-            handle(&JiraApi::new(mock_client), &args, &config).unwrap();
+            create_issue(&JiraApi::new(mock_client), issue, issue_type, push, &config).unwrap();
 
             jail.change_dir(&remote_dir)?;
             assert_eq!(

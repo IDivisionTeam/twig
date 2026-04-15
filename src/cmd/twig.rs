@@ -6,6 +6,7 @@ use crate::config::Config;
 use crate::network;
 use crate::network::api::JiraApi;
 use crate::network::client::TwigClient;
+use crate::vcs::GithubClient;
 
 // To add styling, see https://docs.rs/clap/latest/clap/_derive/_cookbook/cargo_example_derive/index.html
 #[derive(Parser)]
@@ -37,13 +38,14 @@ pub fn execute(config: &Config) -> Result<()> {
         token: config.credentials.token.clone(),
     };
     let jira_api = JiraApi::new(TwigClient::new(&credentials)?);
+    let vcs_api = GithubClient::new();
 
     let twig = Twig::parse();
 
     match &twig.command {
         Commands::Clean(args) => clean::handle(&jira_api, args, config).context("clean command failed")?,
         Commands::Config(args) => cfg::handle(args, config).context("config command failed")?,
-        Commands::Create(args) => create::handle(&jira_api, args, config).context("create command failed")?,
+        Commands::Create(args) => create::handle(&jira_api, Box::new(vcs_api), args, config).context("create command failed")?,
         Commands::Init(args) => init::handle(&jira_api, args).context("init command failed")?,
     }
 

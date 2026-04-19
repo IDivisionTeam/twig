@@ -160,11 +160,7 @@ fn replace_phrases(exclude_phrases: &[Regex], value: &str) -> String {
 /// lowercase–uppercase and acronym boundaries (e.g. `HTTPServer` → `http-server`).
 ///
 /// Note: cases when string has numeric acronym (e.g. `J2K`) are not processed intentionally.
-fn pascal_camel_to_kebab(
-    pascal_case_regex: &Regex,
-    camel_case_regex: &Regex,
-    value: &str,
-) -> String {
+fn pascal_camel_to_kebab(pascal_case_regex: &Regex, camel_case_regex: &Regex, value: &str) -> String {
     let kebab = pascal_case_regex.replace_all(value, |caps: &regex::Captures| {
         format!("{}{}{}", &caps[1], WORD_SEPARATOR, &caps[2])
     });
@@ -201,11 +197,7 @@ fn normalize(value: &str) -> String {
 fn filter_articles(value: &str) -> String {
     value
         .split_whitespace()
-        .filter(|word| {
-            !ARTICLES
-                .iter()
-                .any(|article| word.eq_ignore_ascii_case(article))
-        })
+        .filter(|word| !ARTICLES.iter().any(|article| word.eq_ignore_ascii_case(article)))
         .collect::<Vec<_>>()
         .join(" ")
 }
@@ -215,9 +207,7 @@ mod tests {
     use super::*;
 
     // Update if not matching config/twig.toml file.
-    const EXCLUDE_PHRASES: [&str; 8] = [
-        "front", "mobile", "android", "ios", "be", "web", "spike", "eval",
-    ];
+    const EXCLUDE_PHRASES: [&str; 8] = ["front", "mobile", "android", "ios", "be", "web", "spike", "eval"];
 
     #[test]
     fn append_branch_type_does_nothing_when_unspecified() {
@@ -270,8 +260,7 @@ mod tests {
         let pascal_case_regex = build_pascal_case_regex().unwrap();
         let camel_case_regex = build_camel_case_regex().unwrap();
 
-        let actual =
-            pascal_camel_to_kebab(&pascal_case_regex, &camel_case_regex, "TestTicketPascal");
+        let actual = pascal_camel_to_kebab(&pascal_case_regex, &camel_case_regex, "TestTicketPascal");
         assert_eq!(expected, actual);
     }
 
@@ -281,11 +270,7 @@ mod tests {
         let pascal_case_regex = build_pascal_case_regex().unwrap();
         let camel_case_regex = build_camel_case_regex().unwrap();
 
-        let actual = pascal_camel_to_kebab(
-            &pascal_case_regex,
-            &camel_case_regex,
-            "lowercaseTicketCamel",
-        );
+        let actual = pascal_camel_to_kebab(&pascal_case_regex, &camel_case_regex, "lowercaseTicketCamel");
         assert_eq!(expected, actual);
     }
 

@@ -1,8 +1,8 @@
 use anyhow::Result;
 use clap::Args;
 
-use crate::{config, network::api::JiraApi};
 use crate::network::api::HttpClient;
+use crate::{config, network::api::JiraApi};
 
 #[derive(Args)]
 pub struct Init {

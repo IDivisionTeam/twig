@@ -5,16 +5,18 @@ use figment::{
 };
 use serde::{Deserialize, Deserializer, Serialize};
 use std::collections::BTreeMap;
+#[cfg(not(test))]
+use std::env;
 use std::fmt::Display;
+use std::fmt::Write as fmtWrite;
 use std::{
     collections::HashMap,
-    env, fmt,
+    fmt,
     fs::{self, File},
     io::{self, Write},
     path::Path,
 };
 use thiserror::Error;
-use std::fmt::Write as fmtWrite;
 
 #[derive(Error, Debug)]
 pub enum ConfigError {
@@ -39,6 +41,7 @@ pub struct Config {
     pub credentials: Credentials,
     #[serde(default)]
     pub project: Project,
+    pub remote: Option<Remote>,
     #[serde(default)]
     pub mapping: Mapping,
 }
@@ -92,11 +95,9 @@ impl Default for Project {
         Self {
             branch: "development".to_string(),
             remote: "origin".to_string(),
-            exclude_phrases: [
-                "front", "mobile", "android", "ios", "be", "web", "spike", "eval",
-            ]
-            .map(std::string::ToString::to_string)
-            .to_vec(),
+            exclude_phrases: ["front", "mobile", "android", "ios", "be", "web", "spike", "eval"]
+                .map(std::string::ToString::to_string)
+                .to_vec(),
         }
     }
 }
@@ -114,6 +115,59 @@ impl Display for Project {
             exclude_phrases = self.exclude_phrases.join(", "),
             remote = self.remote,
         )
+    }
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+pub enum RemoteProvider {
+    #[serde(rename = "github")]
+    GitHub,
+    #[serde(rename = "gitlab")]
+    Gitlab,
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+pub struct Remote {
+    pub provider: RemoteProvider,
+    pub token: String,
+    host: Option<String>,
+    #[serde(default)]
+    pub labels: Vec<String>,
+}
+
+impl Remote {
+    pub fn get_host(&self) -> &str {
+        self.host.as_deref().unwrap_or({
+            match self.provider {
+                RemoteProvider::GitHub => "https://api.github.com",
+                RemoteProvider::Gitlab => "https://gitlab.com",
+            }
+        })
+    }
+}
+
+impl Display for Remote {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(
+            f,
+            "\
+            remote.provider={provider:?}\n\
+            remote.token=hidden",
+            provider = self.provider,
+        )?;
+        if let Some(url) = &self.host {
+            writeln!(
+                f,
+                "\
+                remote.url={url}"
+            )?;
+        }
+
+        if !self.labels.is_empty() {
+            writeln!(f)?;
+            write!(f, "remote.labels=[{}]", self.labels.join(","))?;
+        }
+        Ok(())
     }
 }
 
@@ -139,13 +193,14 @@ impl Display for Mapping {
             },
         );
 
-        let mut formatted_str: String = inverted_mapping
-            .into_iter()
-            .fold(String::new(), |mut acc, (k,v)| {
-                let values = v.join(", ");
-                let _ = writeln!(acc, "mapping.{k}=[{values}]");
-                acc
-            });
+        let mut formatted_str: String =
+            inverted_mapping
+                .into_iter()
+                .fold(String::new(), |mut acc, (k, v)| {
+                    let values = v.join(", ");
+                    let _ = writeln!(acc, "mapping.{k}=[{values}]");
+                    acc
+                });
 
         // removes trailing new line
         formatted_str.pop();
@@ -239,15 +294,13 @@ pub fn get_config_global_path() -> String {
 #[cfg(target_os = "linux")]
 #[cfg(not(test))]
 fn get_default_config_path() -> String {
-    env::var("XDG_CONFIG_HOME")
-        .unwrap_or_else(|_| -> String { env::var("HOME").unwrap() + "/.config" })
+    env::var("XDG_CONFIG_HOME").unwrap_or_else(|_| -> String { env::var("HOME").unwrap() + "/.config" })
 }
 
 #[cfg(target_os = "macos")]
 #[cfg(not(test))]
 fn get_default_config_path() -> String {
-    env::var("XDG_DATA_HOME")
-        .unwrap_or_else(|_| -> String { env::var("HOME").unwrap() + "/Library" })
+    env::var("XDG_DATA_HOME").unwrap_or_else(|_| -> String { env::var("HOME").unwrap() + "/Library" })
 }
 
 #[cfg(test)]
@@ -319,6 +372,7 @@ mod tests {
                         token: "super_secret".to_string()
                     },
                     project: Default::default(),
+                    remote: None,
                     mapping: Mapping {
                         entries: Default::default()
                     },
@@ -388,6 +442,11 @@ mod tests {
             branch = "main"
             remote = "myorigin"
             exclude_phrases = ["test", "super_test"]
+            [remote]
+            provider = "github"
+            host = "remote-url"
+            token = "some-token"
+            labels = ["test-label1", "test-label2"]
             [mapping]
             build = ["1.1", "1.2"]
             chore = ["2"]
@@ -446,6 +505,12 @@ mod tests {
                 remote: "myorigin".to_string(),
                 exclude_phrases: vec!["test".to_string(), "super_test".to_string()],
             },
+            remote: Some(Remote {
+                provider: RemoteProvider::GitHub,
+                host: Some("remote-url".to_string()),
+                token: "some-token".to_string(),
+                labels: vec![("test-label1".to_string()), ("test-label2".to_string())],
+            }),
             mapping: Mapping {
                 entries: HashMap::from([
                     ("1.1".to_string(), "build".to_string()),
@@ -479,6 +544,7 @@ mod tests {
                 remote: "myorigin".to_string(),
                 exclude_phrases: vec!["test".to_string(), "super_test".to_string()],
             },
+            remote: None,
             mapping: Mapping {
                 entries: HashMap::new(),
             },

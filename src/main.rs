@@ -3,7 +3,7 @@ mod cmd;
 mod config;
 mod git;
 mod network;
-
+mod vcs;
 
 use anyhow::Result;
 use cmd::twig;

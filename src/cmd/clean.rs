@@ -14,8 +14,8 @@ const DONE_STATUS_ID: i64 = 3;
 
 static ISSUE_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"[A-Z]+-\d+_").unwrap());
 
-use thiserror::Error;
 use crate::network::api::HttpClient;
+use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum CleanCmdError {
@@ -191,10 +191,7 @@ fn query_issues<C: HttpClient>(
     let mut statuses = HashMap::new();
 
     for (local_branch, issue) in issues {
-        let Some(jira_issue) = jira_api
-            .get_jira_issue_status(&issue, !ignore_assignee)
-            .ok()
-        else {
+        let Some(jira_issue) = jira_api.get_jira_issue_status(&issue, !ignore_assignee).ok() else {
             continue;
         };
 

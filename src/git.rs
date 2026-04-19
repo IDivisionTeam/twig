@@ -11,6 +11,8 @@ pub enum GitError {
     Failed(String),
     #[error("failed to get output")]
     Output(#[from] std::string::FromUtf8Error),
+    #[error("failed to get current branch")]
+    CurrentBranch(#[source] Box<GitError>),
     #[error("failed to checkout branch")]
     CheckoutBranch(#[source] Box<GitError>),
     #[error("failed to check if branch exists")]
@@ -19,6 +21,8 @@ pub enum GitError {
     Push(#[source] Box<GitError>),
     #[error("current branch has uncommitted changes")]
     BranchNotClean,
+    #[error("failed to get latest commit meesage")]
+    LatestCommitMessage(#[source] Box<GitError>),
 }
 
 type Result<T> = std::result::Result<T, GitError>;
@@ -39,27 +43,32 @@ pub fn push_to_remote(branch_name: &str, remote: &str) -> Result<String> {
     execute(&["push", "-u", remote, branch_name]).map_err(|err| GitError::Push(Box::new(err)))
 }
 
+pub fn current_branch() -> Result<String> {
+    execute(&["branch", "--show-current"])
+        .map(|branch_name| branch_name.trim().to_string())
+        .map_err(|err| GitError::CurrentBranch(Box::new(err)))
+}
+
 pub fn branch_exists(branch_name: &str) -> Result<bool> {
-    match execute(&[
-        "show-ref",
-        "--exists",
-        &format!("refs/heads/{branch_name}"),
-    ]) {
+    match execute(&["show-ref", "--exists", &format!("refs/heads/{branch_name}")]) {
         Ok(_) => Ok(true),
         Err(GitError::Failed(ref msg)) if msg.contains("reference does not exist") => Ok(false),
-        Err(GitError::Failed(ref msg)) if msg.contains("unknown option `exists'") => branch_exists_fallback(branch_name),
+        Err(GitError::Failed(ref msg)) if msg.contains("unknown option `exists'") => {
+            branch_exists_fallback(branch_name)
+        }
         Err(e) => Err(GitError::CheckBranchIfExists(Box::new(e))),
     }
 }
 
 /// `branch_exists_fallback` is a fallback for --exists parameter for git version < v2.44.0
 fn branch_exists_fallback(branch_name: &str) -> Result<bool> {
-    match execute(&[
-        "rev-parse",
-        &format!("refs/heads/{branch_name}"),
-    ]) {
+    match execute(&["rev-parse", &format!("refs/heads/{branch_name}")]) {
         Ok(_) => Ok(true),
-        Err(GitError::Failed(ref msg)) if msg.contains("unknown revision or path not in the working tree") => Ok(false),
+        Err(GitError::Failed(ref msg))
+            if msg.contains("unknown revision or path not in the working tree") =>
+        {
+            Ok(false)
+        }
         Err(e) => Err(GitError::CheckBranchIfExists(Box::new(e))),
     }
 }
@@ -86,6 +95,16 @@ pub fn delete_local_branch(branch_name: &str) -> Result<String> {
 
 pub fn delete_remote_branch(remote: &str, branch_name: &str) -> Result<String> {
     execute(&["push", "-d", remote, branch_name])
+}
+
+pub fn latest_commit_msg() -> Result<String> {
+    execute(&["log", "-1", "--pretty=%B"])
+        .map(|commit_msg| commit_msg.trim().to_string())
+        .map_err(|err| GitError::LatestCommitMessage(Box::new(err)))
+}
+
+pub fn get_origin_url() -> Result<String> {
+    execute(&["remote", "get-url", "origin"])
 }
 
 pub fn execute(args: &[&str]) -> Result<String> {

@@ -108,10 +108,7 @@ fn create_change_on_remote(
     config: &config::Remote,
 ) -> Result<()> {
     let origin_url = git::get_origin_url()?;
-    let origin_url = origin_url.trim().trim_matches('/');
-    let origin_url_parts = origin_url.split('/').collect::<Vec<_>>();
-    let owner = origin_url_parts[origin_url_parts.len() - 2];
-    let repo = origin_url_parts[origin_url_parts.len() - 1];
+    let (owner, repo) = extract_owner_and_repo(&origin_url)?;
 
     let combined_labels: Vec<_> = labels
         .into_iter()
@@ -134,6 +131,15 @@ fn create_change_on_remote(
         RemoteProvider::Gitlab => info!("Merge request created: {url}"),
     }
     Ok(())
+}
+
+fn extract_owner_and_repo(origin_url: &str) -> Result<(&str, &str)> {
+    let origin_url = origin_url.trim().trim_matches('/').trim_end_matches(".git");
+    let origin_url_parts = origin_url.split('/').collect::<Vec<_>>();
+    let prefix_with_origin = origin_url_parts[origin_url_parts.len() - 2].split(':').collect::<Vec<_>>();
+    let owner = prefix_with_origin.last().ok_or_else(|| anyhow::anyhow!("failed to extract owner from origin: {origin_url}"))?;
+    let repo = origin_url_parts.last().ok_or_else(|| anyhow::anyhow!("failed to extract repo from origin: {origin_url}"))?;
+    Ok((owner, repo))
 }
 
 #[cfg(test)]

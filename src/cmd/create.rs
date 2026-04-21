@@ -136,9 +136,15 @@ fn create_change_on_remote(
 fn extract_owner_and_repo(origin_url: &str) -> Result<(&str, &str)> {
     let origin_url = origin_url.trim().trim_matches('/').trim_end_matches(".git");
     let origin_url_parts = origin_url.split('/').collect::<Vec<_>>();
-    let prefix_with_origin = origin_url_parts[origin_url_parts.len() - 2].split(':').collect::<Vec<_>>();
-    let owner = prefix_with_origin.last().ok_or_else(|| anyhow::anyhow!("failed to extract owner from origin: {origin_url}"))?;
-    let repo = origin_url_parts.last().ok_or_else(|| anyhow::anyhow!("failed to extract repo from origin: {origin_url}"))?;
+    let prefix_with_origin = origin_url_parts[origin_url_parts.len() - 2]
+        .split(':')
+        .collect::<Vec<_>>();
+    let owner = prefix_with_origin
+        .last()
+        .ok_or_else(|| anyhow::anyhow!("failed to extract owner from origin: {origin_url}"))?;
+    let repo = origin_url_parts
+        .last()
+        .ok_or_else(|| anyhow::anyhow!("failed to extract repo from origin: {origin_url}"))?;
     Ok((owner, repo))
 }
 

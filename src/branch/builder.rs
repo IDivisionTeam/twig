@@ -212,9 +212,9 @@ mod tests {
     #[test]
     fn append_branch_type_does_nothing_when_unspecified() {
         let expected = String::new();
-        let mut buffer = String::new();
+        let buffer = String::new();
 
-        append_branch_type(None, &mut buffer);
+        append_branch_type(None, &buffer);
 
         let actual = buffer;
         assert_eq!(expected, actual);
@@ -222,7 +222,7 @@ mod tests {
 
     #[test]
     fn append_branch_type_adds_branch_type_when_specified() {
-        let expected = format!("feat{}", BRANCH_TYPE_SEPARATOR);
+        let expected = format!("feat{BRANCH_TYPE_SEPARATOR}");
         let actual = append_branch_type(Some("feat"), "");
 
         assert_eq!(expected, actual);
@@ -230,7 +230,7 @@ mod tests {
 
     #[test]
     fn append_issue_key_adds_issue_key() {
-        let expected = format!("XXXX-0000{}", ISSUE_TYPE_SEPARATOR);
+        let expected = format!("XXXX-0000{ISSUE_TYPE_SEPARATOR}");
         let actual = append_issue_key("XXXX-0000", "");
 
         assert_eq!(expected, actual);

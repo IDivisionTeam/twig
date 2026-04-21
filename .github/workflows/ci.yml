@@ -32,7 +32,7 @@ jobs:
       - name: Lint
         run: |
           cargo fmt --check
-          cargo clippy --verbose -- -D warnings
+          cargo clippy --all-targets --verbose -- -D warnings
 
       - name: Test
         run: cargo test --verbose

@@ -149,6 +149,7 @@ fn extract_owner_and_repo(origin_url: &str) -> Result<(&str, &str)> {
 }
 
 #[cfg(test)]
+#[allow(clippy::result_large_err)]
 mod tests {
     use std::collections::HashMap;
 
@@ -174,10 +175,7 @@ mod tests {
                 project: config::Project::default(),
                 remote: None,
                 mapping: config::Mapping {
-                    entries: HashMap::from([(
-                        "test-branch-type".to_string(),
-                        branch_type_prefix.to_string(),
-                    )]),
+                    entries: HashMap::from([("test-branch-type".to_string(), branch_type_prefix.clone())]),
                 },
             };
 
@@ -211,7 +209,7 @@ mod tests {
                 new_branch.trim()
             );
             Ok(())
-        })
+        });
     }
 
     #[rstest]
@@ -272,12 +270,13 @@ mod tests {
             create_issue(&JiraApi::new(mock_client), issue, issue_type, push, &config).unwrap();
 
             jail.change_dir(&remote_dir)?;
-            assert_eq!(true, git::branch_exists("test-key_this-is-mock-summary").unwrap());
+            assert!(git::branch_exists("test-key_this-is-mock-summary").unwrap());
 
             Ok(())
-        })
+        });
     }
 
+    #[allow(dead_code)]
     fn test_create_change_on_remote() {
         // TODO
     }
@@ -298,11 +297,10 @@ mod tests {
         }
 
         fn request<T: DeserializeOwned, E: ApiError + DeserializeOwned>(
-            &self,
             result: &serde_json::Value,
         ) -> Result<T> {
             let result: T = serde_json::from_value(result.clone())
-                .map_err(|e| anyhow::anyhow!("Mock deserialization failed: {}", e))?;
+                .map_err(|e| anyhow::anyhow!("Mock deserialization failed: {e}"))?;
             Ok(result)
         }
     }
@@ -313,7 +311,7 @@ mod tests {
             _: &str,
             _: Vec<(&str, &str)>,
         ) -> Result<T> {
-            self.request::<T, E>(&self.get_response_json)
+            Self::request::<T, E>(&self.get_response_json)
         }
 
         fn post<T: DeserializeOwned, S: Serialize, E: ApiError + DeserializeOwned>(

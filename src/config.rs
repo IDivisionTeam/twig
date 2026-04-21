@@ -307,6 +307,7 @@ fn get_default_config_path() -> String {
 pub use tests::get_default_config_path;
 
 #[cfg(test)]
+#[allow(clippy::result_large_err)]
 mod tests {
     use super::*;
     use std::io;
@@ -323,7 +324,7 @@ mod tests {
             assert_eq!(config, build_test_config_model());
 
             Ok(())
-        })
+        });
     }
 
     #[test]
@@ -335,7 +336,7 @@ mod tests {
             assert_eq!(config, build_test_config_model());
 
             Ok(())
-        })
+        });
     }
 
     #[test]
@@ -371,16 +372,16 @@ mod tests {
                         auth: "basic".to_string(),
                         token: "super_secret".to_string()
                     },
-                    project: Default::default(),
+                    project: Project::default(),
                     remote: None,
                     mapping: Mapping {
-                        entries: Default::default()
+                        entries: HashMap::default()
                     },
                 }
             );
 
             Ok(())
-        })
+        });
     }
 
     #[test]
@@ -396,7 +397,7 @@ mod tests {
             assert_eq!(config, build_test_config_model_with_zero_issue_type());
 
             Ok(())
-        })
+        });
     }
 
     #[test]
@@ -405,9 +406,9 @@ mod tests {
             jail.create_dir(".twig/config")?;
 
             create_config_if_not_exist(&get_config_local_path()).unwrap();
-            assert_eq!(Path::new(&get_config_local_path()).exists(), true);
+            assert!(Path::new(&get_config_local_path()).exists());
             Ok(())
-        })
+        });
     }
 
     fn create_global_config(content: &str) -> io::Result<()> {

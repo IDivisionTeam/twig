@@ -2,6 +2,7 @@ use anyhow::Result;
 use octocrab::Octocrab;
 use tokio::runtime::Builder;
 
+#[derive(Debug)]
 pub struct RemoteChangesParams {
     pub owner: String,
     pub repo: String,

@@ -136,6 +136,16 @@ pub struct Remote {
 }
 
 impl Remote {
+    #[cfg(test)]
+    pub fn new(provider: RemoteProvider, token: String, host: Option<String>, labels: Vec<String>) -> Self {
+        Self {
+            provider,
+            token,
+            host,
+            labels,
+        }
+    }
+
     pub fn get_host(&self) -> &str {
         self.host.as_deref().unwrap_or({
             match self.provider {

@@ -37,6 +37,9 @@ pub enum Subcommands {
     ChangesOnRemote {
         #[arg(short, long, value_delimiter = ',')]
         labels: Vec<String>,
+
+        #[arg(short, long, default_value_t = false)]
+        push: bool,
     },
 }
 
@@ -50,8 +53,15 @@ pub fn handle<C: HttpClient>(
         Subcommands::Branch { issue, r#type, push } => {
             create_issue(jira_api, issue, r#type.clone(), *push, config)
         }
-        Subcommands::ChangesOnRemote { labels } => match &config.remote {
-            Some(r) => create_change_on_remote(labels.to_owned(), &config.project.branch, vcs_client, r),
+        Subcommands::ChangesOnRemote { labels, push } => match &config.remote {
+            Some(r) => create_change_on_remote(
+                labels.to_owned(),
+                &config.project.remote,
+                &config.project.branch,
+                vcs_client,
+                *push,
+                r,
+            ),
             None => bail!("failed to make changes on remote: remote config is not set"),
         },
     }
@@ -103,24 +113,30 @@ fn try_map_issue_type_to_branch_type(
 
 fn create_change_on_remote(
     labels: Vec<String>,
+    remote: &str,
     default_branch: &str,
     vcs_client: &dyn VCSClient,
+    push: bool,
     config: &config::Remote,
 ) -> Result<()> {
+    let branch = git::current_branch()?;
+    if push {
+        let output = git::push_to_remote(&branch, remote)?;
+        info!("{output}");
+    }
+
     let origin_url = git::get_origin_url()?;
     let (owner, repo) = extract_owner_and_repo(&origin_url)?;
 
-    let combined_labels: Vec<_> = labels
-        .into_iter()
-        .chain(config.labels.clone())
-        .collect::<HashSet<_>>()
-        .into_iter()
-        .collect();
+    let mut combined_labels = config.labels.clone();
+    combined_labels.extend(labels);
+    let mut seen = HashSet::new();
+    combined_labels.retain(|item| seen.insert(item.clone()));
 
     let url = vcs_client.create_changes_on_remote(RemoteChangesParams {
         owner: owner.to_string(),
         repo: repo.to_string(),
-        branch: git::current_branch()?,
+        branch: branch.clone(),
         default_branch: default_branch.to_string(),
         title: git::latest_commit_msg()?,
         labels: combined_labels,
@@ -130,11 +146,13 @@ fn create_change_on_remote(
         RemoteProvider::GitHub => info!("Pull request created: {url}"),
         RemoteProvider::Gitlab => info!("Merge request created: {url}"),
     }
+
     Ok(())
 }
 
 fn extract_owner_and_repo(origin_url: &str) -> Result<(&str, &str)> {
-    let origin_url = origin_url.trim().trim_matches('/').trim_end_matches(".git");
+    let origin_url = origin_url.trim().trim_end_matches(".git").trim_matches('/');
+
     let origin_url_parts = origin_url.split('/').collect::<Vec<_>>();
     let prefix_with_origin = origin_url_parts[origin_url_parts.len() - 2]
         .split(':')
@@ -145,27 +163,29 @@ fn extract_owner_and_repo(origin_url: &str) -> Result<(&str, &str)> {
     let repo = origin_url_parts
         .last()
         .ok_or_else(|| anyhow::anyhow!("failed to extract repo from origin: {origin_url}"))?;
+
     Ok((owner, repo))
 }
 
 #[cfg(test)]
 #[allow(clippy::result_large_err)]
 mod tests {
-    use std::collections::HashMap;
-
     use super::*;
     use crate::git;
     use crate::network::client::ApiError;
     use figment::Jail;
-    use rstest_log::rstest;
+    use rstest::rstest;
     use serde::Serialize;
     use serde::de::DeserializeOwned;
+    use std::collections::HashMap;
+    use std::sync::{Mutex, Once};
 
     #[rstest]
     #[case::from_type_arg(Some("test-type".to_string()), "test-type")]
     #[case::from_mapping(None, "test-mapping-type")]
     fn test_handle_branch_type(#[case] branch_type_arg: BranchType, #[case] branch_type_prefix: String) {
         Jail::expect_with(|_| {
+            init_logger();
             let issue = "test-issue";
             let issue_type = branch_type_arg;
             let push = false;
@@ -179,13 +199,9 @@ mod tests {
                 },
             };
 
-            git::execute(&["config", "--global", "user.email", "test@example.com"]).unwrap();
-            git::execute(&["config", "--global", "user.name", "test name"]).unwrap();
+            init_git_with_commit("Initial commit").unwrap();
 
-            git::execute(&["init"]).unwrap();
-            git::execute(&["commit", "--allow-empty", "-m", "Initial commit"]).unwrap();
-
-            let mut mock_client = MockClient::new();
+            let mut mock_client = MockHttpClient::new();
             let mock_response = serde_json::json!({
                 "id": "test-id",
                 "key": "test-key",
@@ -215,6 +231,7 @@ mod tests {
     #[rstest]
     fn test_handle_pushed_to_remote() {
         Jail::expect_with(|jail| {
+            init_logger();
             let issue = "test-issue";
             let issue_type = None;
             let push = true;
@@ -228,33 +245,11 @@ mod tests {
                 },
             };
 
-            git::execute(&["config", "--global", "user.email", "test@example.com"]).unwrap();
-            git::execute(&["config", "--global", "user.name", "test name"]).unwrap();
+            init_git_with_commit("Initial commit").unwrap();
 
-            git::execute(&["init"]).unwrap();
-            git::execute(&["commit", "--allow-empty", "-m", "Initial commit"]).unwrap();
+            create_tmp_remote(jail, "remote")?;
 
-            let remote_dir = jail.create_dir("remote")?;
-            git::execute(&[
-                "remote",
-                "add",
-                "origin",
-                &format!(
-                    "{}/.git",
-                    jail.directory()
-                        .join(&remote_dir)
-                        .into_os_string()
-                        .into_string()
-                        .unwrap()
-                ),
-            ])
-            .unwrap();
-
-            jail.change_dir(&remote_dir)?;
-            git::execute(&["init"]).unwrap();
-            jail.change_dir(jail.directory())?;
-
-            let mut mock_client = MockClient::new();
+            let mut mock_client = MockHttpClient::new();
             let mock_response = serde_json::json!({
                 "id": "test-id",
                 "key": "test-key",
@@ -269,25 +264,117 @@ mod tests {
 
             create_issue(&JiraApi::new(mock_client), issue, issue_type, push, &config).unwrap();
 
-            jail.change_dir(&remote_dir)?;
+            jail.change_dir("remote")?;
             assert!(git::branch_exists("test-key_this-is-mock-summary").unwrap());
 
             Ok(())
         });
     }
 
-    #[allow(dead_code)]
+    #[rstest]
     fn test_create_change_on_remote() {
-        // TODO
+        Jail::expect_with(|jail| {
+            init_logger();
+            let labels_from_args = vec!["test: label".to_string()];
+            let default_branch = "master";
+            let current_branch = "test-branch";
+            let commit_message = "test commit message";
+
+            let config = config::Remote::new(
+                RemoteProvider::GitHub,
+                "test-token".to_string(),
+                None,
+                vec!["label-from-config: test".to_string()],
+            );
+            let vcs_client = MockVCSClient {};
+
+            let owner = "owner";
+            let repo = "remote";
+            let remote_path = format!("{owner}/{repo}");
+            init_git_with_commit(commit_message).unwrap();
+            git::checkout(current_branch).unwrap();
+            create_tmp_remote(jail, &remote_path)?;
+
+            create_change_on_remote(
+                labels_from_args,
+                "origin",
+                default_branch,
+                &vcs_client,
+                true,
+                &config,
+            )
+            .unwrap();
+
+            jail.change_dir(&remote_path)?;
+            assert!(git::branch_exists(current_branch).unwrap());
+
+            let expected_remote_params = RemoteChangesParams {
+                owner: owner.to_string(),
+                repo: repo.to_string(),
+                branch: current_branch.to_string(),
+                default_branch: default_branch.to_string(),
+                title: commit_message.to_string(),
+                labels: vec!["label-from-config: test".to_string(), "test: label".to_string()],
+            };
+
+            let logs = LOG_BUFFER.lock().unwrap();
+            let actual_params = logs.iter().find(|l| l.contains("Pull request created"));
+            assert!(actual_params.is_some());
+            assert_eq!(
+                format!("{expected_remote_params:?}"),
+                actual_params.unwrap().replace("Pull request created: ", "")
+            );
+
+            Ok(())
+        });
     }
 
-    struct MockClient {
+    fn init_git_with_commit(commit_msg: &str) -> Result<()> {
+        git::execute(&["init"])?;
+        git::execute(&[
+            "-c",
+            "user.name=test@example.com",
+            "-c",
+            "user.email=test name",
+            "commit",
+            "--allow-empty",
+            "-m",
+            commit_msg,
+        ])?;
+        Ok(())
+    }
+
+    fn create_tmp_remote(jail: &mut Jail, remote_path: &str) -> std::result::Result<(), figment::Error> {
+        let remote_dir = jail.create_dir(remote_path)?;
+        git::execute(&[
+            "remote",
+            "add",
+            "origin",
+            &format!(
+                "{}/.git",
+                jail.directory()
+                    .join(&remote_dir)
+                    .into_os_string()
+                    .into_string()
+                    .unwrap()
+            ),
+        ])
+        .unwrap();
+
+        jail.change_dir(&remote_dir)?;
+        git::execute(&["init"]).unwrap();
+        jail.change_dir(jail.directory())?;
+
+        Ok(())
+    }
+
+    struct MockHttpClient {
         get_response_json: serde_json::Value,
     }
 
-    impl MockClient {
-        fn new() -> MockClient {
-            MockClient {
+    impl MockHttpClient {
+        fn new() -> MockHttpClient {
+            MockHttpClient {
                 get_response_json: serde_json::Value::Null,
             }
         }
@@ -305,7 +392,7 @@ mod tests {
         }
     }
 
-    impl HttpClient for MockClient {
+    impl HttpClient for MockHttpClient {
         fn get<T: DeserializeOwned, E: ApiError + DeserializeOwned>(
             &self,
             _: &str,
@@ -321,5 +408,39 @@ mod tests {
         ) -> Result<T> {
             todo!()
         }
+    }
+
+    struct MockVCSClient {}
+
+    impl VCSClient for MockVCSClient {
+        fn create_changes_on_remote(&self, params: RemoteChangesParams) -> Result<String> {
+            Ok(format!("{params:?}"))
+        }
+    }
+
+    static INITIALIZER: Once = Once::new();
+    static LOG_BUFFER: Mutex<Vec<String>> = Mutex::new(Vec::new());
+
+    fn init_logger() {
+        INITIALIZER.call_once(|| {
+            log::set_logger(&SpyLogger).unwrap();
+            log::set_max_level(log::LevelFilter::Info);
+        });
+        LOG_BUFFER.lock().unwrap().clear();
+    }
+
+    struct SpyLogger;
+    impl log::Log for SpyLogger {
+        fn enabled(&self, _: &log::Metadata) -> bool {
+            true
+        }
+        fn log(&self, record: &log::Record) {
+            let msg = format!("{}", record.args());
+            eprintln!("[{}] {}", record.level(), msg);
+            if let Ok(mut buf) = LOG_BUFFER.lock() {
+                buf.push(msg);
+            }
+        }
+        fn flush(&self) {}
     }
 }

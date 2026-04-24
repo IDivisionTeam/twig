@@ -26,6 +26,4 @@ tokio = { version = "1.52.0", features = ["rt-multi-thread"] }
 
 [dev-dependencies]
 rstest = "0.26.1"
-rstest-log = "0.2.0"
 tempfile = "3.27.0"
-test-log = "0.2.19"

@@ -23,6 +23,8 @@ pub enum GitError {
     BranchNotClean,
     #[error("failed to get latest commit meesage")]
     LatestCommitMessage(#[source] Box<GitError>),
+    #[error("failed to get remote branch")]
+    GetRemoteBranch(#[source] Box<GitError>),
 }
 
 type Result<T> = std::result::Result<T, GitError>;
@@ -105,6 +107,18 @@ pub fn latest_commit_msg() -> Result<String> {
 
 pub fn get_origin_url() -> Result<String> {
     execute(&["remote", "get-url", "origin"])
+}
+
+pub fn get_remote_branch(local_branch_name: &str) -> Result<Option<String>> {
+    match execute(&[
+        "rev-parse",
+        "--abbrev-ref",
+        &format!("{local_branch_name}@{{upstream}}"),
+    ]) {
+        Ok(remote_branch) => Ok(Some(remote_branch)),
+        Err(GitError::Failed(ref msg)) if msg.contains("no upstream configured for branch") => Ok(None),
+        Err(e) => Err(GitError::GetRemoteBranch(Box::new(e))),
+    }
 }
 
 pub fn execute(args: &[&str]) -> Result<String> {

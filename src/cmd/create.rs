@@ -123,6 +123,9 @@ fn create_change_on_remote(
     if push {
         let output = git::push_to_remote(&branch, remote)?;
         info!("{output}");
+    } else {
+        git::get_remote_branch(&branch)?
+            .ok_or_else(|| anyhow::anyhow!("branch `{branch}` has no remote branch"))?;
     }
 
     let origin_url = git::get_origin_url()?;
@@ -279,6 +282,7 @@ mod tests {
             let default_branch = "master";
             let current_branch = "test-branch";
             let commit_message = "test commit message";
+            let push = true;
 
             let config = config::Remote::new(
                 RemoteProvider::GitHub,
@@ -300,7 +304,7 @@ mod tests {
                 "origin",
                 default_branch,
                 &vcs_client,
-                true,
+                push,
                 &config,
             )
             .unwrap();
@@ -323,6 +327,43 @@ mod tests {
             assert_eq!(
                 format!("{expected_remote_params:?}"),
                 actual_params.unwrap().replace("Pull request created: ", "")
+            );
+
+            Ok(())
+        });
+    }
+
+    #[rstest]
+    fn test_create_change_on_remote_error_if_no_push_and_no_remote_branch() {
+        Jail::expect_with(|_| {
+            init_logger();
+            let labels_from_args = vec!["test: label".to_string()];
+            let default_branch = "master";
+            let current_branch = "test-branch";
+            let commit_message = "test commit message";
+            let push = false;
+
+            let config = config::Remote::new(
+                RemoteProvider::GitHub,
+                "test-token".to_string(),
+                None,
+                vec!["label-from-config: test".to_string()],
+            );
+
+            init_git_with_commit(commit_message).unwrap();
+            git::checkout(current_branch).unwrap();
+
+            let result = create_change_on_remote(
+                labels_from_args,
+                "origin",
+                default_branch,
+                &MockVCSClient {},
+                push,
+                &config,
+            );
+            assert_eq!(
+                "branch `test-branch` has no remote branch",
+                result.unwrap_err().to_string()
             );
 
             Ok(())
